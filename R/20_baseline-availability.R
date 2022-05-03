@@ -1,25 +1,29 @@
-# Preparing data frames for baseline availability analyses
-# Bryan Maitland (bmaitland101@gmail.com)
-# 2020-04-01
-# 2022-01-09
+# Baseline availability analyses
 
-# Packages ----
+## prep 
+
+# packages
 library(tidyverse) 
-library(magrittr)  
+library(here)
+library(cowplot)
+
+# library(magrittr)  
 library(mgcv)  
 library(gratia)
-library(cowplot)
-library(here)
-source(here("code", "fx_theme_pub.R"))
+
+source(here("R", "fx_theme_pub.R"))
 theme_set(theme_Publication())
 
-# Load Data ----
-gradient <- read_csv(here("data-derived", "data_PCA_results.csv"))
-chla <- read_csv(here("data-raw", "resources","chla.csv"))
-afdm <- read_csv(here("data-raw", "resources", "afdm.csv"))
+## Data -------------
+
+gradient <- read_csv(here("out", "data_PCA_results.csv"))
+chla <- read_csv(here("data", "chla.csv"))
+afdm <- read_csv(here("data", "afdm.csv"))
 
 
 # Wrangle  ----------------------------
+
+# chla
 chla <- chla %>% 
   # Remove Horse Creek Sites
   filter(!site_id %in% c("HC00","HC01","HC02","HC-DOS","HC-SLB")) %>% 
@@ -49,6 +53,7 @@ chla <- chla %>%
          chla_mgmL, 
          chla_ug_cm2)
 
+# AFDM
 afdm <- afdm %>%
   filter(!site_id %in% c("HC00","HC01","HC02","HC-DOS","HC-SLB")) %>% 
   filter(sample_hitch != "H0") %>% 
@@ -332,7 +337,7 @@ panel <- plot_grid(p.panel, legend, rel_widths = c(3, .3))
 panel
 
 # Save it
-ggsave(filename = here("figs1", "resource_availability.pdf"), 
+ggsave(filename = here("out", "resource_availability.pdf"), 
        plot = panel, device = cairo_pdf,
        units = "in", width = 10, height = 5.5)
 
