@@ -1,25 +1,41 @@
 
+# Principal components analysis - Longitudinal gradient
 
-# libraries
+## prep ---------------------------------
+
+# packages
 library(tidyverse)
 library(here)
-library(GGally)
-library(dendextend)
+
+library(GGally)       # colinearity and pairs plots
+library(ggpubr)       # quick density and Q-Q plots
+library(factoextra)  # working with pca and dendrograms
+library(dendextend)  # working with dendrogram objects
 library(pvclust)
-library(factoextra)
 
+# custom theme
+source(here("R", "fx_theme_pub.R"))
 
-# data  -------------------------------------------------------
-site_data <- read_csv(
-  here("data-raw", "data_field_sites.csv"), 
+# stream labels
+label_streams <- c("Laramie","MedBow","Sweetwater","Horse")
+
+# site id labels
+label_sites_ids <- 
+  c("LR00","LR01","LR02","LR03","LR04","LR05","LR06","LR07","LR08",
+    "MB01","MB02","MB03","MB04",
+    "SW01","SW02","SW03","SW04",
+    "HC00","HC01","HC02")
+
+## data  -------------------------------------------------------
+site_data <- read_csv(here("data", "site_environment.csv"), 
   col_types = cols(
     site_id = col_factor(levels = label_sites_ids),
     site_name = col_character(),
     drainage_basin = col_factor(levels = NULL),
     state = col_factor(levels = NULL),
     stream_name = col_factor(levels = label_streams),
-    site_latitude_dd = col_double(),
-    site_longitude_dd = col_double(),
+    lat = col_double(),
+    lon = col_double(),
     Sthlr_order = col_integer(),
     Elevation = col_double(),
     Drainage_area = col_double(),
@@ -31,17 +47,20 @@ site_data <- read_csv(
   )
 )
 
-# wrangle
+# clean up
 site_data_clean <- site_data %>% 
-  filter(stream_name != "Horse") %>% 
+  filter(stream_name != "Horse") %>%  # scouting
   select(
     site_id, stream_name, 
     Elevation, Sthlr_order, Drainage_area, Dist_N_Platte, Gradient,
     Temp_warm, Site_width
   )
-head(site_data_clean)
+
+# check it
+site_data_clean
 
 # colinearity ---------------
+
 site_data_clean %>% 
   select(-site_id, -stream_name) %>%
   GGally::ggcorr(geom = "circle", nbreaks = 5)
@@ -113,20 +132,21 @@ shapiro.test(site_data_clean$Site_width)
 # sqrt transform gradient. 
 
 
-# Wrangle and set up df for PCA ---------------
+## PCA ---------------
 
-pca_df <- 
-  site_data_clean %>% 
+# set up df
+pca_df <- site_data_clean %>% 
   select(-site_id, -stream_name) %>% 
   mutate(
     Drainage_area = log(Drainage_area +1),
     Gradient = sqrt(Gradient)
   ) %>% 
   as.data.frame()
+
 # Set row names of df for plotting
 rownames(pca_df) <- site_data_clean$site_id 
 
-# Cluster analysis  ----------------
+### Cluster analysis
 
 hc1 <-
   pca_df %>%                               # Data
@@ -136,15 +156,16 @@ hc1 <-
 
 # plot
 as.dendrogram(hc1) %>%
-  hang.dendrogram(hang_height = .5) %>%
-  set("branches_lwd", 1) %>%  # Branches line width
-  set("branches_k_color", viridis::viridis(3), k = 3) %>%  
+  dendextend::hang.dendrogram(hang_height = .5) %>%
+  dendextend::set("branches_lwd", 1) %>%  # Branches line width
+  dendextend::set("branches_k_color", viridis::viridis(3), k = 3) %>%  
   #set("labels_colors", group.colz, k = 3) %>%   
-  set("labels_cex", 1)  %>% 
+  dendextend::set("labels_cex", 1)  %>% 
   factoextra::fviz_dend(xlab = "Distance", main = "") + 
   theme_bw() 
+# three main groups
 
-# make grouping variable
+# add grouping variable
 site_data_clean <- site_data_clean %>% 
   mutate(
     site_group = 
@@ -155,7 +176,7 @@ site_data_clean <- site_data_clean %>%
                     "LR02","LR03","LR04","LR05","LR06","SW02","SW03","MB03"),
                     "Mid","Down"))))
 
-# PCA -------------------------------------
+### PCA
 
 # run analysis
 pca_01 <- prcomp(pca_df, center = TRUE, scale. = TRUE)
@@ -166,20 +187,20 @@ get_eig(pca_01)
 
 # Visualize eigenvalues/variances
 fviz_screeplot(pca_01, addlabels = TRUE, ylim = c(0, 100)) + 
-  theme_Publication() + 
+  # theme_Publication() +
   labs(x = "PCA Dimension")
 
 # variable contributions to axes
 cowplot::plot_grid(
   # Contributions of variables to PC
   fviz_contrib(pca_01, choice = "var", axes = 1, top = 10, 
-               color = "black", fill = "grey") + theme_Publication() + labs(x = ""),
+               color = "black", fill = "grey") + labs(x = ""),
   # Contributions of variables to PC
   fviz_contrib(pca_01, choice = "var", axes = 2, top = 10, 
-               color = "black", fill = "grey") + theme_Publication() + labs(x = ""),
+               color = "black", fill = "grey") + labs(x = ""),
   # Contributions of variables to PC
   fviz_contrib(pca_01, choice = "var", axes = 3, top = 10, 
-               color = "black", fill = "grey") + theme_Publication() + labs(x = ""),
+               color = "black", fill = "grey") + labs(x = ""),
   ncol = 1, labels = c("A", "B", "C"
   )
 )
@@ -229,13 +250,13 @@ fa_pca_rand95_long %>%
   labs(y = "Eigenvalue", x = "", fill = "", 
        title = "Observed vs. Random PCA Eigenvalues") +
   scale_fill_grey() + 
-  theme_Publication() + 
+  # theme_Publication() + 
   theme(legend.position = c(0.3, 0.9))
 
 # save plot
-ggsave(here("figs1", "pca_eigen_perm_test.pdf"), 
-       plot = last_plot(), device = cairo_pdf,
-       units = "in", width = 6, height = 5)
+# ggsave(here("figs1", "pca_eigen_perm_test.pdf"), 
+#        plot = last_plot(), device = cairo_pdf,
+#        units = "in", width = 6, height = 5)
 
 # Custom PCA biplot ------------------------------------
 
@@ -256,7 +277,7 @@ factoextra::fviz_pca_biplot(
        y = "PC2 (12.0%)", 
        color = "Stream System"
        ) +
-  theme_Publication() +
+  # theme_Publication() +
   theme(legend.position = c(0.8, 0.9))  +
   guides(shape = 'none') + 
   scale_x_continuous(breaks = seq(-4, 5, 1), 
@@ -267,9 +288,9 @@ factoextra::fviz_pca_biplot(
                                           override.aes = list(alpha = 1, size = 3)))
 
 # save
-ggsave(filename = here("figs1", "pca_biplot.pdf"), 
-       plot = last_plot(), device = cairo_pdf,
-       units = "in", width = 8, height = 5)
+# ggsave(filename = here("figs1", "pca_biplot.pdf"), 
+#        plot = last_plot(), device = cairo_pdf,
+#        units = "in", width = 8, height = 5)
 
 
 # export data ------------------------
@@ -283,23 +304,30 @@ pca_fit_tbl <-
   select(site_id, stream_name, site_group, PC1, PC2) %>% 
   mutate(PC1 = (PC1 + 4), PC2 = PC2 + 2.1) %>% 
   arrange(PC1)
+
+# check it 
 pca_fit_tbl
 
-pca_fit_tbl %>% 
-  write_csv(here("data-derived", "data_PCA_results.csv"))
+# write 
+pca_fit_tbl %>% write_csv(here("out", "data_PCA_results.csv"))
 
 
 # Expot table for manuscript ------------------
-table_for_paper <- 
-  pca_fit_tbl %>% 
-  left_join(site_data, by = "site_id") %>% 
-  filter(site_id != "LR01") %>%    
-  select(site_group, site_id, lat, lon, PC1, Elevation, Gradient, Dist_N_Platte, 
-         Sthlr_order, Site_width, Temp_warm, Drainage_area) %>% 
-  mutate(across(c(Elevation, Dist_N_Platte, Drainage_area), round, 0)) %>% 
-  mutate(across(c(Temp_warm), round, 1)) %>% 
-  mutate(across(c(PC1, Site_width), round, 2)) %>% 
-  mutate(across(c(Gradient), round, 3)) 
 
-table_for_paper %>% 
-  write_csv(here("results", "site_enviro_pca_table.csv"))
+# # clean up
+# table_for_paper <- 
+#   pca_fit_tbl %>% 
+#   left_join(site_data, by = "site_id") %>% 
+#   filter(site_id != "LR01") %>%    
+#   select(site_group, site_id, lat, lon, PC1, Elevation, Gradient, Dist_N_Platte, 
+#          Sthlr_order, Site_width, Temp_warm, Drainage_area) %>% 
+#   mutate(across(c(Elevation, Dist_N_Platte, Drainage_area), round, 0)) %>% 
+#   mutate(across(c(Temp_warm), round, 1)) %>% 
+#   mutate(across(c(PC1, Site_width), round, 2)) %>% 
+#   mutate(across(c(Gradient), round, 3)) 
+# 
+# # check it
+# table_for_paper
+# 
+# # write 
+# table_for_paper %>% write_csv(here("out", "site_enviro_pca_table.csv"))
