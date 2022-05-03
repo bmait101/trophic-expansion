@@ -4,16 +4,18 @@
 # Libraries ----
 library(tidyverse)  
 library(here)
-library(mgcv); library(gratia)
+library(mgcv)
+library(gratia)
 library(cowplot)
 library(broom)
 
 source("code/fx_theme_pub.R", chdir = TRUE)
 theme_set(theme_Publication()) 
 
-# Load data  ---------------------------------------------------------------
-source(here("code", "clean", "00_prep-sia-data.R"))
-lg <- read_csv(here("data-derived", "data_PCA_results.csv"))
+## Data -------------------------------------
+
+source(here("R", "00_prep-sia-data.R"))
+lg <- read_csv(here("out", "data_PCA_results.csv"))
 
 # Tidy up data
 baseline <- sia_baselines %>% 
