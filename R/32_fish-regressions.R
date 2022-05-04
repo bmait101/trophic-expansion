@@ -291,6 +291,6 @@ panel <- plot_grid(
   align = "vh")
 panel
 
-# ggsave(filename = "figs/fish-community_panel.pdf", plot = last_plot(), 
+# ggsave(filename = "out/fish-community_panel.pdf", plot = last_plot(), 
 #       device = cairo_pdf,  units = "in", width = 10, height = 3)
 #===============================================================================

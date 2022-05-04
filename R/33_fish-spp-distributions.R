@@ -1,18 +1,27 @@
 
-# Prep
+# Plot fish species occurance and rel. abundance along gradient
+
+## Prep --------------------
+
+# libraries
+library(tidyverse)
+
+# some labels
 fam_levels <- c("Catostomidae","Centrarchidae","Clupeidae",
                 "Cyprinidae","Fundulidae","Gasterosteridae",
                 "Ictaluridae","Percidae","Salmonidae","Sciaenidae")
 origin_levels <- c("Native","NonNative")
 
+## Data ------------------
+
+fish_spp_abundnace <- read_csv(here("out", "fish_spp_counts.csv"))
 
 den <- fish_spp_abundnace %>% 
   filter(stream_name != "Horse") %>% 
   group_by(site_id, taxon_code) %>%
   summarise(density = mean(density))
 
-data <- 
-  data_field %>% 
+data <- data_field %>% 
   group_by(site_id, taxon_code) %>%
   summarise(count = sum(count)) %>% 
   left_join(gradient, by = "site_id") %>% 
@@ -67,8 +76,8 @@ top_row <- plot_grid(
 panel <- plot_grid(top_row, spp_dist, labels = c('', 'D'), ncol = 1, rel_heights = c(0.7, 1))
 panel
 
-ggsave(filename = here("figs1", "fish_comm_panel.pdf"), 
-       plot = panel, device = cairo_pdf, 
-       units = "in", width = 11, height = 8)
+# ggsave(filename = here("out", "fish_comm_panel.pdf"), 
+#        plot = panel, device = cairo_pdf, 
+#        units = "in", width = 11, height = 8)
 
 
