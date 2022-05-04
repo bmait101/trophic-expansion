@@ -81,8 +81,8 @@ sia_inverts <-sia_tidy %>%
 sia_fish <- sia_tidy %>%
   filter(compartment == "fish") 
 
-# sia_consumers <- sia_tidy %>%
-#   filter(compartment %in% c("invert","fish"))
+sia_consumers <- sia_tidy %>%
+  filter(compartment %in% c("invert","fish"))
 
 # data_tidy %>% write_csv(path = "data-derived/sia_inverts_compiled.csv")
 

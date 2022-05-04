@@ -445,7 +445,7 @@ panel <- cowplot::plot_grid(
 panel
 
 # Save it
-ggsave(here("td_panel.pdf"), plot = panel, device = cairo_pdf, 
+ggsave(here("out", "td_panel.pdf"), plot = panel, device = cairo_pdf, 
        units = "in", width = 10, height = 6)
 
 
