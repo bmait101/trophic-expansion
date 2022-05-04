@@ -9,29 +9,29 @@ library(here)
 library(vegan)
 library(funrar)
 
-source(here("code", "fx_theme_pub.R"))
+# source(here("code", "fx_theme_pub.R"))
 theme_set(theme_bw())
 
-## Data
+## Data -------------------------------------
 
-# Electrofishing data
+# Electrofishing count data
 data_field <- read_csv(here("data", "data_field_fish.csv")) %>% 
   select(-life_stage, -count_euthanized, -length_mm, -weight_g, -field_notes) %>% 
   filter(sample_year != "2015") %>%   # remove 2015 pilot data
   filter(sample_year != "2017a") %>%  # remove April 2017 sample event
-  filter(site_id != "LR01") %>%       # remove LR01
-  filter(stream_name != "Horse")      # remove Horse Creek
+  filter(site_id != "LR01") %>%       # remove LR01 test site
+  filter(stream_name != "Horse")      # remove Horse Creek test sites
 data_field
 
-data_sites <- read_csv(here("data", "data_field_sites.csv")) %>% 
+data_sites <- read_csv(here("data", "site_environment.csv")) %>% 
   filter(stream_name != "Horse") %>% 
   mutate(site_area = Site_length * Site_width) %>%  # calculate site area
   select(site_id, site_area)  # clean up tbl
 data_sites
 
-gradient <- read_csv("data/data_PCA_results.csv")
 fish <- read_csv("data/metadata_fishes.csv")
 
+gradient <- read_csv("out/data_PCA_results.csv")
 
 # Fish community metrics ------------------------------------------------------
 

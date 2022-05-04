@@ -15,14 +15,14 @@ library(here)
 library(mgcv)
 library(cowplot)
 
-source("code/fx_theme_pub.R", chdir = TRUE)
-theme_set(theme_Publication())
+# source("code/fx_theme_pub.R", chdir = TRUE)
+theme_set(theme_bw())
 #===============================================================================
 # Load data
 #===============================================================================
 
-data_all <- read_csv(here("data-derived", "fish_structure_summary.csv"))
-gradient <- read_csv(here("data-derived", "data_PCA_results.csv")) 
+data_all <- read_csv(here("out", "fish_structure_summary.csv"))
+gradient <- read_csv(here("out", "data_PCA_results.csv")) 
 
 # Summarize data by site (across years) for analysis and plotting
 data <- data_all %>% 
