@@ -9,12 +9,12 @@ library(gratia)
 library(cowplot)
 library(broom)
 
-source("code/fx_theme_pub.R", chdir = TRUE)
-theme_set(theme_Publication()) 
+# source("code/fx_theme_pub.R", chdir = TRUE)
+theme_set(theme_bw()) 
 
 ## Data -------------------------------------
 
-source(here("R", "00_prep-sia-data.R"))
+source(here("R", "40_prep-sia-data.R"))
 lg <- read_csv(here("out", "data_PCA_results.csv"))
 
 # Tidy up data
@@ -353,7 +353,7 @@ p.panel.full <- cowplot::plot_grid(p.panel, legend, rel_widths = c(3, .4))
 p.panel.full
 
 # Save it
-ggsave(filename = here("figs1", "resource_sia_var.pdf"), 
+ggsave(filename = here("out", "resource_sia_var.pdf"), 
        plot = p.panel.full, device = cairo_pdf,
        units = "in", width = 10, height = 5.5)
 
