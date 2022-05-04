@@ -1,103 +1,107 @@
+
+# Invertebrate community analyses
+
+## Prep
+
+# libraries
 library(tidyverse)
 library(here)
 library(vegan)
 library(mgcv)
 library(cowplot)
-source(here("code", "fx_theme_pub.R"))
-theme_set(theme_Publication())
 
-# Data ------------------------------------------------------
-bugs <- read_csv(here("data-raw", "sample_log_bugs.csv")) 
-bugs_meta <- read_csv(here("data-raw", "metadata_bugs.csv")) %>% 
+source(here("R", "fx_theme_pub.R"))
+theme_set(theme_bw())
+
+## Data --------------
+
+# invertebrate field data
+bugs <- read_csv(here("data", "sample_log_bugs.csv")) 
+
+# taxon affinity score for fizzy coding
+bugs_meta <- read_csv(here("data", "metadata_bugs.csv")) %>% 
   select(taxon_code, ffg, ffg_shd, ffg_col, ffg_grz, ffg_prd)
-gradient <- read_csv(here("data-derived", "data_PCA_results.csv"))
 
-data_sites <- read_csv("data-derived/data_PCA_results.csv") %>% 
-  filter(site_id != "LR01") 
+# PC longitudinal gradient
+gradient <- read_csv(here("out", "data_PCA_results.csv"))
 
-# Wrangle
-bugs <- bugs %>% 
-  filter(stream_name != "Mono") %>%  
-  filter(sample_year == "2016") %>%  
-  filter(site_id != "LR01")%>%        
-  filter(! site_id %in% c("SW-DG","SW-SRR","SW-WR")) %>% 
-  filter(gear_type=="dnet") %>% 
-  mutate(taxon_code = if_else(taxon_code == "Glossiphoniidae", "Hirudinea", taxon_code)) %>% 
-  mutate(taxon_code = if_else(taxon_code == "Gammarus", "Gammaride", taxon_code)) %>% 
-  mutate(taxon_code = if_else(taxon_code == "Amphipoda", "Gammaride", taxon_code)) %>% 
-  select(sample_year, stream_name, site_id, sample_hitch, gear_type, taxon_code, count_individuals) %>% 
+
+## Clean up and summarize counts by site-taxon
+bugs_clean <- bugs %>% 
+  # filter
+  filter(stream_name != "Mono") %>%  # test site
+  filter(site_id != "LR01")%>%        # test site
+  filter(! site_id %in% c("SW-DG","SW-SRR","SW-WR")) %>% # SW test sites
+  filter(sample_year == "2016") %>%   # restrict to 2016
+  filter(gear_type=="dnet") %>%  # dnet data only (no HESS samples)
+  # fix names
+  mutate(taxon_code = if_else(
+    taxon_code == "Glossiphoniidae", "Hirudinea", taxon_code)) %>% 
+  mutate(taxon_code = if_else(
+    taxon_code == "Gammarus", "Gammaride", taxon_code)) %>% 
+  mutate(taxon_code = if_else(
+    taxon_code == "Amphipoda", "Gammaride", taxon_code)) %>% 
+  select(sample_year, stream_name, site_id, sample_hitch, 
+         gear_type, taxon_code, count_individuals) %>% 
+  # summarize counts by taxon and site
   group_by(site_id, taxon_code) %>% 
-  summarise(n = n()) %>% 
-  ungroup() %>% 
-  group_by(taxon_code) %>% 
+  summarise(n = n(), .groups = 'drop') %>% 
   drop_na(taxon_code) %>% 
   filter(taxon_code != "UNKN") %>% 
-  #filter(n() > 1) %>% 
+  # link ffg and affinity scores and remove rare ones
   left_join(bugs_meta, by = "taxon_code") %>% 
-  filter(! ffg %in% c("terrestrial-collector","terrestrial-herbivore","terrestrial-predator"))
-bugs
-
-# Counts 
-# bugs %>%  
-#   group_by(taxon_code) %>% 
-#   tally() %>% print(n = Inf) 
-# 
-# bugs %>%
-#   group_by(ffg, taxon_code) %>% 
-#   tally() %>% print(n = Inf) 
-# 
-# bugs %>%
-#   group_by(site_id) %>% 
-#   tally() %>% print(n = Inf) 
-
-# Prep --------------------------------
-
-# Cal richness and abundance and combine
-site_richness <-
-    enframe(vegan::specnumber(data_field_wide_matrix)) %>%
-    rename(richness = value) %>% 
-    select(-name)
-
-bug_summary <- bugs %>%
-  group_by(site_id) %>%
-  summarise(.groups = "drop",
-            abund = sum(n)) %>% 
-  bind_cols(site_richness) %>% 
-  left_join(gradient, by = "site_id")
-bug_summary
-
+  filter(! ffg %in% c(
+    "terrestrial-collector","terrestrial-herbivore","terrestrial-predator")
+    )
+bugs_clean
 
 # Make a sites by species matirx (wide data)
-data_bug_wide <- bugs %>% 
+bugs_clean_w <- bugs_clean %>% 
   group_by(site_id, taxon_code) %>%
   summarise(.groups = "drop",
             abund = sum(n)) %>% 
   # spread obs to make wide table
   spread(taxon_code, abund, fill = 0) 
-data_bug_wide
+bugs_clean_w
 
 # Set the abundance matrix to its own df
-data_field_wide_matrix <- as.matrix(data_bug_wide[2:ncol(data_bug_wide)])
+bugs_clean_w_m <- as.matrix(bugs_clean_w[2:ncol(bugs_clean_w)])
 
 # All values >c0 are retuned as 1
-data_field_wide_matrix[data_field_wide_matrix>0] <- 1
+bugs_clean_w_m[bugs_clean_w_m>0] <- 1
 
-# Assiagn to df and name with species names
+# Assign to df and name with species names
 sites_present <- 
-  enframe(colSums(data_field_wide_matrix)) %>% 
+  enframe(colSums(bugs_clean_w_m)) %>% 
   rename(taxon_code = name, occupancy = value)
 #sites_present$taxon_code <- rownames(sites_present)
 
-# Check it
+# Write table to file
 sites_present <- sites_present %>% 
   left_join(bugs_meta, by = "taxon_code") %>% 
   select(ffg, taxon_code, occupancy) %>% 
   arrange(desc(occupancy)) %>% 
   arrange(ffg, taxon_code) %>% 
   rename(FFG = ffg, Species = taxon_code, Occupancy=occupancy) %>% 
-  write_csv(here("results", "bug_species_occupancy.csv"))
+  write_csv(here("out", "bug_species_occupancy.csv"))
 
-# Rarefaction --------------------------------
+
+(site_richness <-
+    enframe(vegan::specnumber(bugs_clean_w_m)) %>%
+    rename(richness = value) %>% 
+    select(-name) )
+
+bug_summary <- bugs_clean %>%
+  group_by(site_id) %>%
+  summarise(.groups = "drop",
+            abund = sum(n)) %>%
+  bind_cols(site_richness) %>%
+  left_join(gradient, by = "site_id")
+bug_summary
+
+
+
+## Rarefaction --------------------------------
 
 # Species richness increases with sample size, and differences in richness
 # actually may be caused by differences in sample size.
@@ -105,10 +109,10 @@ sites_present <- sites_present %>%
 # But differences seem to be small vs. non-rarefied estimates
 
 # Vector of site_ids
-sitesLabels <- data_bug_wide$site_id  
+sitesLabels <- bugs_clean_w$site_id  
 # Set the abundance matrix to its own df
-BCI <- as.matrix(data_bug_wide[2:ncol(data_bug_wide)])
-rownames(BCI) <- data_bug_wide$site_id 
+BCI <- as.matrix(bugs_clean_w[2:ncol(bugs_clean_w)])
+rownames(BCI) <- bugs_clean_w$site_id 
 BCI
 
 rarecurve(BCI, col = "black")
@@ -117,13 +121,14 @@ rare_rich_tbl <- rare_rich %>%
   enframe() %>%
   rename(site_id = name, rare_rich = value)
 
-bug_summary <- bug_summary %>% 
-  left_join(rare_rich_tbl, by = "site_id")
-bug_summary
+# add rarefied richness to summary table
+bug_summary <- bug_summary %>% left_join(rare_rich_tbl, by = "site_id")
 
+# test for effect of gradeint on rarefied invert taxon richness
 lm_rich <- lm(data = bug_summary, rare_rich ~ PC1)
 summary(lm_rich)
 
+# plot richness vs gradient
 p.richness <- 
   bug_summary %>%
   ggplot(aes(x = PC1, y = rare_rich)) +    
@@ -138,17 +143,19 @@ p.richness <-
 p.richness
 
 
-# FFGs ----------------------------------------------------
-ffgs <- bugs %>% 
+## FFGs ----------------------------------------------------
+
+# summarize trait affinities for each site
+ffgs <- bugs_clean %>% 
   group_by(site_id) %>% 
-  summarise(mean_shd = mean(ffg_shd, na.rm = TRUE), 
-            mean_col = mean(ffg_col, na.rm = TRUE), 
-            mean_grz = mean(ffg_grz, na.rm = TRUE), 
-            mean_prd = mean(ffg_prd, na.rm = TRUE)
-            ) %>% 
+  summarise(
+    mean_shd = mean(ffg_shd, na.rm = TRUE), 
+    mean_col = mean(ffg_col, na.rm = TRUE), 
+    mean_grz = mean(ffg_grz, na.rm = TRUE), 
+    mean_prd = mean(ffg_prd, na.rm = TRUE)
+    ) %>% 
   left_join(gradient, by = "site_id") 
 ffgs
-
 
 
 # Fit GAM
@@ -170,11 +177,11 @@ summary(gam_KUD95) # gam style summary of fitted model
 model_label <- c("s(PC1, 1.64)",
                  "'Deviance expl.' == '69.5%'")
 
-p.shd <- 
-  ffgs %>% 
+p.shd <- ffgs %>% 
   bind_cols(fit_gam) %>% 
   ggplot(aes(x = PC1, y = mean_shd)) +    
-  geom_ribbon(aes(x = PC1, ymin = lwr_gam, ymax = upr_gam), alpha = 0.5, fill = "grey") +
+  geom_ribbon(aes(x = PC1, ymin = lwr_gam, ymax = upr_gam), 
+              alpha = 0.5, fill = "grey") +
   geom_line(aes(PC1, fit_gam), size = 1, color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
   scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
@@ -201,9 +208,12 @@ p.col <-
   scale_fill_brewer(palette = "Dark2") + 
   labs(title = "", x = "Long. gradient (PC1)", y = "Collector FFG trait affinity", 
        fill = "Stream System") +
-  annotate(geom = "text", x = 0.5, y = 2.1, parse = TRUE, size = 4, hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,14']==5.6,", ",italic(P)==0.3)))) +
-  annotate(geom = "text", x = 0.5, y = 2.1*0.98, parse = TRUE, size = 4,hjust = 0, vjust = 1,
+  annotate(geom = "text", x = 0.5, y = 2.1, parse = TRUE, size = 4,
+           hjust = 0, vjust = 1,
+           label = as.character(expression(paste(F['1,14']==5.6,", ",
+                                                 italic(P)==0.3)))) +
+  annotate(geom = "text", x = 0.5, y = 2.1*0.98, parse = TRUE, size = 4,
+           hjust = 0, vjust = 1,
            label = as.character(expression(paste(R['adj']^2==0.23))))
 p.col
 
@@ -221,9 +231,12 @@ p.grz <-
   scale_fill_brewer(palette = "Dark2") + 
   labs(title = "", x = "Long. gradient (PC1)", y = "Grazer FFG trait affinity", 
        fill = "Stream System") +
-  annotate(geom = "text", x = 4, y = 1.9, parse = TRUE, size = 4, hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,14']==4.7,", ",italic(P)==0.05)))) +
-  annotate(geom = "text", x = 4, y = 1.9*0.96, parse = TRUE, size = 4,hjust = 0, vjust = 1,
+  annotate(geom = "text", x = 4, y = 1.9, parse = TRUE, size = 4, 
+           hjust = 0, vjust = 1,
+           label = as.character(expression(paste(F['1,14']==4.7,", ",
+                                                 italic(P)==0.05)))) +
+  annotate(geom = "text", x = 4, y = 1.9*0.96, parse = TRUE, size = 4,
+           hjust = 0, vjust = 1,
            label = as.character(expression(paste(R['adj']^2==0.20))))
 p.grz
 
@@ -242,19 +255,24 @@ p.prd
 
 
 
-middle_row <- plot_grid(p.shd + theme(legend.position="none") + theme(plot.margin=unit(c(1,1,1,1),"mm")), 
-                        p.col + theme(legend.position="none") + theme(plot.margin=unit(c(1,1,1,1),"mm")), 
+middle_row <- plot_grid(p.shd + theme(legend.position="none") +
+                          theme(plot.margin=unit(c(1,1,1,1),"mm")), 
+                        p.col + theme(legend.position="none") + 
+                          theme(plot.margin=unit(c(1,1,1,1),"mm")), 
                         labels = c('B', 'C'))
 
-bottom_row <- plot_grid(p.grz + theme(legend.position="none") + theme(plot.margin=unit(c(1,1,1,1),"mm")), 
-                        p.prd + theme(legend.position="none") + theme(plot.margin=unit(c(1,1,1,1),"mm")), 
+bottom_row <- plot_grid(p.grz + theme(legend.position="none") + 
+                          theme(plot.margin=unit(c(1,1,1,1),"mm")), 
+                        p.prd + theme(legend.position="none") + 
+                          theme(plot.margin=unit(c(1,1,1,1),"mm")), 
                         labels = c('D', 'E'))
 
-panel <- plot_grid(p.richness, middle_row, bottom_row, labels = c('A', '', ''), ncol = 1)
+panel <- plot_grid(p.richness, middle_row, bottom_row, labels = c('A', '', ''),
+                   ncol = 1)
 
-ggsave(filename = here("figs1", "invert_ffgs.pdf"), 
-       plot = panel, device = cairo_pdf, 
-       units = "in", width = 8, height = 10)
+# ggsave(filename = here("out", "invert_ffgs.pdf"), 
+#        plot = panel, device = cairo_pdf, 
+#        units = "in", width = 8, height = 10)
 
 
 
@@ -314,9 +332,9 @@ nmds.plot.occup <- site.scrs %>%
   guides(fill = guide_legend(override.aes=list(shape=21)))
 nmds.plot.occup
 
-ggsave(filename = here("figs1","invert_nmds.pdf"), 
-       plot = nmds.plot.occup, device = cairo_pdf,  
-       units = "in", width = 7, height = 4)
+# ggsave(filename = here("figs1","invert_nmds.pdf"), 
+#        plot = nmds.plot.occup, device = cairo_pdf,  
+#        units = "in", width = 7, height = 4)
 
 # NMDS data extracition
 # Extract nmds site coordinates for axis 1 and 2
