@@ -285,52 +285,18 @@ get_spp_ovlp <- function(data, target, species){
   select(OverlapID, starts_with("other"))
 }
 
-fish_df_spp %>% filter(yr_site=="2016_LR00") %>% distinct(taxon_code)
-get_spp_ovlp(fish_df_spp, "2016_LR00", "BKT")
-get_spp_ovlp(fish_df_spp, "2016_LR00", "BNT")
-get_spp_ovlp(fish_df_spp, "2016_LR00", "LNS")
-
-out <- list()
-sp <- c("BKT","BNT","LNS")
-for(i in sp) {
-  out[[i]] <- get_spp_ovlp(fish_df_spp, "2016_LR00", i)
-}
-out
-
-
+# test it
+# fish_df_spp %>% filter(yr_site=="2016_LR00") %>% distinct(taxon_code)
+# get_spp_ovlp(fish_df_spp, "2016_LR00", "BKT")
+# get_spp_ovlp(fish_df_spp, "2016_LR00", "BNT")
+# get_spp_ovlp(fish_df_spp, "2016_LR00", "LNS")
+# 
 # out <- list()
-# 
-# target <- c("2016_LR00", "2017_LR00")
 # sp <- c("BKT","BNT","LNS")
-# 
-# for(i in target) {
-#   for(j in sp) {
-#     print(paste("This is iteration i =", i, "and j =", j))
-#   }
+# for(i in sp) {
+#   out[[i]] <- get_spp_ovlp(fish_df_spp, "2016_LR00", i)
 # }
-# 
-# for(i in target) {
-#   for(j in sp){
-#     
-#     dat <- fish_df_spp %>% 
-#       filter(yr_site == i) %>%
-#       mutate(taxon_code = ifelse(taxon_code==j,j,"other")) %>% 
-#       as.data.frame()
-#     
-#     kud_obj <- estKIN(data = dat, x = "d13Cc", y = "d15N", group = "taxon_code", 
-#                 levels = 95, smallSamp = TRUE)
-#     
-#     overlap <- calcOverlap(kud_obj)
-#     
-#     out <- overlap %>% 
-#       filter(!str_detect(OverlapID, "other")) %>% 
-#       select(starts_with("other")) %>% 
-#       pull()
-#     
-#     print(out)
-#   }
-#   
-# }
+# out
 
 
 target <- levels(fish_df_spp$yr_site)
@@ -406,7 +372,7 @@ spp_ovlp3 <- spp_ovlp %>%
 spp_ovlp3
 
 
-# %>% 
+# spp_ovlp3 %>% 
 #   write_csv("data-derived/fish_overlap.csv")
 ```
 

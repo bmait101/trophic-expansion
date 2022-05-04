@@ -151,46 +151,46 @@ p.panel.ovp <- cowplot::plot_grid(
 p.panel.ovp
 
 # # Save it
-ggsave(here("figs1", "niche_overlap.pdf"), plot = p.panel.ovp,
+ggsave(here("out", "niche_overlap.pdf"), plot = p.panel.ovp,
        units = "in", width = 9, height = 4)
 
 
-# 3d
-
-m3 <- gam(log(mean_overlap) ~ 
-            s(PC1, k = k) + 
-            s(richness, k = k) + 
-            ti(PC1, richness) + 
-            s(site_id, bs = "re") + 
-            s(species, bs = "re"), 
-          # family = Gamma(link = "log"),
-          method = "REML", 
-          data = spp_ovlp4)
-m4 <- gam(mean_overlap ~ 
-            s(PC1, k = k) + 
-            s(richness, k = k) + 
-            ti(PC1, richness) + 
-            s(site_id, bs = "re") + 
-            s(species, bs = "re"), 
-          family = Gamma(link = "log"),
-          method = "REML", 
-          data = spp_ovlp4)
-
-AIC(m3, m4)
-k.check(m3)
-summary(m3)
-appraise(m3)
-draw(m3, residuals = TRUE)
-
-AIC(m1, m2, m3) %>% arrange(AIC)
-
-model_2_p <- predict_gam(m3, exclude_terms = "s(site_id,species)")
-model_2_p <- predict_gam(m4)
-model_2_p
-
-model_2_p %>%
-  ggplot(aes(PC1, richness, z = fit)) +
-  geom_raster(aes(fill = fit)) +
-  geom_contour(colour = "white") + 
-  viridis::scale_fill_viridis()
+# # 3d
+# 
+# m3 <- gam(log(mean_overlap) ~ 
+#             s(PC1, k = k) + 
+#             s(richness, k = k) + 
+#             ti(PC1, richness) + 
+#             s(site_id, bs = "re") + 
+#             s(species, bs = "re"), 
+#           # family = Gamma(link = "log"),
+#           method = "REML", 
+#           data = spp_ovlp4)
+# m4 <- gam(mean_overlap ~ 
+#             s(PC1, k = k) + 
+#             s(richness, k = k) + 
+#             ti(PC1, richness) + 
+#             s(site_id, bs = "re") + 
+#             s(species, bs = "re"), 
+#           family = Gamma(link = "log"),
+#           method = "REML", 
+#           data = spp_ovlp4)
+# 
+# AIC(m3, m4)
+# k.check(m3)
+# summary(m3)
+# appraise(m3)
+# draw(m3, residuals = TRUE)
+# 
+# AIC(m1, m2, m3) %>% arrange(AIC)
+# 
+# model_2_p <- predict_gam(m3, exclude_terms = "s(site_id,species)")
+# model_2_p <- predict_gam(m4)
+# model_2_p
+# 
+# model_2_p %>%
+#   ggplot(aes(PC1, richness, z = fit)) +
+#   geom_raster(aes(fill = fit)) +
+#   geom_contour(colour = "white") + 
+#   viridis::scale_fill_viridis()
 
