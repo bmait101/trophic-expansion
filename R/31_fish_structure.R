@@ -1,20 +1,21 @@
 
-# 2022-01-09
+# Fish community analyses
 
+## Prep 
 
-# Libraries -----------------------------------------------------------
+# Libraries
 library(tidyverse)
 library(here)
 library(vegan)
 library(funrar)
 
 source(here("code", "fx_theme_pub.R"))
-theme_set(theme_Publication())
+theme_set(theme_bw())
 
-# Load data -----------------------------------------------------------
+## Data
 
 # Electrofishing data
-data_field <- read_csv(here("data-raw", "data_field_fish.csv")) %>% 
+data_field <- read_csv(here("data", "data_field_fish.csv")) %>% 
   select(-life_stage, -count_euthanized, -length_mm, -weight_g, -field_notes) %>% 
   filter(sample_year != "2015") %>%   # remove 2015 pilot data
   filter(sample_year != "2017a") %>%  # remove April 2017 sample event
@@ -22,14 +23,14 @@ data_field <- read_csv(here("data-raw", "data_field_fish.csv")) %>%
   filter(stream_name != "Horse")      # remove Horse Creek
 data_field
 
-data_sites <- read_csv(here("data-raw", "data_field_sites.csv")) %>% 
+data_sites <- read_csv(here("data", "data_field_sites.csv")) %>% 
   filter(stream_name != "Horse") %>% 
   mutate(site_area = Site_length * Site_width) %>%  # calculate site area
   select(site_id, site_area)  # clean up tbl
 data_sites
 
-gradient <- read_csv("data-derived/data_PCA_results.csv")
-fish <- read_csv("data-raw/metadata_fishes.csv")
+gradient <- read_csv("data/data_PCA_results.csv")
+fish <- read_csv("data/metadata_fishes.csv")
 
 
 # Fish community metrics ------------------------------------------------------
@@ -105,7 +106,7 @@ fish_community_summary <- fish_community_summary %>%
   bind_cols(site_mg) 
 
 fish_community_summary %>%
-  write_csv(here("data-derived", "fish_structure_summary.csv"))
+  write_csv(here("out", "fish_structure_summary.csv"))
 
 
 # Species counts ---------------------------------------------------------
@@ -124,7 +125,7 @@ fish_spp_abundnace <- data_field %>%
   arrange(sample_year, stream_name, site_id) 
 
 fish_spp_abundnace %>% 
-  write_csv(here("data-derived", "fish_spp_counts.csv"))
+  write_csv(here("out", "fish_spp_counts.csv"))
 
 # Species relative abundance -----------------------------------------------------------
 
@@ -139,7 +140,7 @@ fish_rel_abund <- data_field_wide_matrix %>%
 
 
 fish_rel_abund %>% 
-  write_csv(here("data-derived", "fish_spp_relative.csv"))
+  write_csv(here("out", "fish_spp_relative.csv"))
 
 
 
@@ -164,7 +165,7 @@ rownames(BCI) <- data_field_wide_site$site_id
 mat_fish_abund <- BCI
 mat_fish_occup <- as.matrix((BCI > 0) + 0)
 
-data_sites <- read_csv(here("data-derived", "data_PCA_results.csv")) %>% 
+data_sites <- read_csv(here("out", "data_PCA_results.csv")) %>% 
   filter(site_id != "LR01") %>% 
   arrange(site_id) %>% 
   select(-site_id, -PC1, -PC2) %>% 
@@ -276,7 +277,7 @@ legend <- cowplot::get_legend(
 nmds_panel <- cowplot::plot_grid(prow, legend, rel_widths = c(3, 0.5))
 nmds_panel
 
-ggsave(filename = here("figs1", "fish_nmds.pdf"), plot = nmds_panel, 
+ggsave(filename = here("out", "fish_nmds.pdf"), plot = nmds_panel, 
        device = cairo_pdf,  units = "in", width = 10, height = 3.5)
 
 
