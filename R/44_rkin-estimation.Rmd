@@ -6,17 +6,15 @@ editor_options:
 ---
 
 ```{r set up}
-# Libraries
-library(tidyverse)
-library(here)
-library(rKIN) 
+source(here::here("R", "00_prep.R"))
+source(here("R", "40_prep-sia-data.R"))
+
 ```
 
 ```{r load data}
 
-source(here("R", "40_prep-sia-data.R"))
-rich <- read_csv(here("out", "fish_structure_summary.csv")) 
-gradient <- read_csv(here("out", "data_PCA_results.csv"))
+rich <- read_csv(here("out", "r1_fish_structure_summary.csv")) 
+gradient <- read_csv(here("out", "r1_PCA_results.csv"))
 fish_meta <- read_csv(here("data", "metadata_fishes.csv")) 
 
 # fish_native <- sia_fish %>% 
@@ -254,7 +252,7 @@ spp_area
 ```{r}
 
 fish_df_spp %>% 
-  filter(yr_site=="2016_LR00") %>% 
+  filter(yr_site=="2016_LR01") %>% 
   mutate(taxon_code = ifelse(taxon_code=="BKT","BKT","other")) %>% 
   group_by(sample_year, site_id) %>% 
   nest() %>% 

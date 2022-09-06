@@ -1,37 +1,35 @@
 
 # Fish community analyses
 
-## Prep 
-
-# Libraries
-library(tidyverse)
-library(here)
-library(vegan)
-library(funrar)
-
-# source(here("code", "fx_theme_pub.R"))
-theme_set(theme_bw())
+## Prep -----------
+source(here::here("R", "00_prep.R"))
 
 ## Data -------------------------------------
 
 # Electrofishing count data
-data_field <- read_csv(here("data", "data_field_fish.csv")) %>% 
+data_field <- read_csv(here("data", "fish_counts.csv")) %>% 
   select(-life_stage, -count_euthanized, -length_mm, -weight_g, -field_notes) %>% 
   filter(sample_year != "2015") %>%   # remove 2015 pilot data
   filter(sample_year != "2017a") %>%  # remove April 2017 sample event
   filter(site_id != "LR01") %>%       # remove LR01 test site
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   filter(stream_name != "Horse")      # remove Horse Creek test sites
 data_field
 
-data_sites <- read_csv(here("data", "site_environment.csv")) %>% 
-  filter(stream_name != "Horse") %>% 
+
+sites <- read_csv(here("data", "site_covariates.csv")) |>  
+  filter(stream_name != "Horse") %>%  # scouting
+  filter(site_id != "LR01") %>%  # scouting
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   mutate(site_area = Site_length * Site_width) %>%  # calculate site area
   select(site_id, site_area)  # clean up tbl
-data_sites
 
-fish <- read_csv("data/metadata_fishes.csv")
 
-gradient <- read_csv("out/data_PCA_results.csv")
+fish <- read_csv(here("data", "efishing_metadata.csv")) %>%  
+  filter(site_id != "LR01") %>%       # remove LR01 test site
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id))
+
+# gradient <- read_csv(here("out", "r1_PCA_results.csv"))
 
 # Fish community metrics ------------------------------------------------------
 
@@ -40,7 +38,7 @@ fish_community_summary <- data_field %>%
   group_by(sample_year, stream_name, site_id) %>%
   summarise(.groups = "drop",
             abund = sum(count)) %>% 
-  left_join(data_sites, by = "site_id") %>%
+  left_join(sites, by = "site_id") %>%
   #ungroup() %>% 
   mutate(density = abund / site_area) %>% 
   select(-site_area) %>% 
@@ -106,7 +104,7 @@ fish_community_summary <- fish_community_summary %>%
   bind_cols(site_mg) 
 
 fish_community_summary %>%
-  write_csv(here("out", "fish_structure_summary.csv"))
+  write_csv(here("out", "r1_fish_structure_summary.csv"))
 
 
 # Species counts ---------------------------------------------------------
@@ -117,7 +115,7 @@ fish_spp_abundnace <- data_field %>%
   summarise(.groups = "drop",
             count = sum(count)) %>% 
   # Now, join site area to tbl
-  left_join(data_sites, by = "site_id") %>%
+  left_join(sites, by = "site_id") %>%
   
   # Calculate total fish density  by species
   mutate(density = count / site_area) %>% 
@@ -125,7 +123,7 @@ fish_spp_abundnace <- data_field %>%
   arrange(sample_year, stream_name, site_id) 
 
 fish_spp_abundnace %>% 
-  write_csv(here("out", "fish_spp_counts.csv"))
+  write_csv(here("out", "r1_fish_spp_counts.csv"))
 
 # Species relative abundance -----------------------------------------------------------
 
@@ -140,7 +138,7 @@ fish_rel_abund <- data_field_wide_matrix %>%
 
 
 fish_rel_abund %>% 
-  write_csv(here("out", "fish_spp_relative.csv"))
+  write_csv(here("out", "r1_fish_spp_relative.csv"))
 
 
 
@@ -164,13 +162,11 @@ rownames(BCI) <- data_field_wide_site$site_id
 # Set dataframs
 mat_fish_abund <- BCI
 mat_fish_occup <- as.matrix((BCI > 0) + 0)
-
-data_sites <- read_csv(here("out", "data_PCA_results.csv")) %>% 
-  filter(site_id != "LR01") %>% 
+gradient_2 <- gradient %>% 
   arrange(site_id) %>% 
   select(-site_id, -PC1, -PC2) %>% 
   as.data.frame()
-rownames(data_sites) <- rownames(mat_fish_abund)
+rownames(gradient_2) <- rownames(mat_fish_abund)
 
 
 # Run NMDS
@@ -196,12 +192,12 @@ stressplot(nmds_fish_occup) # Produces a Shepards diagram
 
 # Plotting NMDS
 # Vectors
-fish.envfit <- envfit(nmds_fish_abund, data_sites, permutations = 999) # this fits environmental vectors
+fish.envfit <- envfit(nmds_fish_abund, gradient_2, permutations = 999) # this fits environmental vectors
 fish.spp.fit <- envfit(nmds_fish_abund, mat_fish_abund, permutations = 999) # this fits species vectors
 
 site.scrs <- as.data.frame(scores(nmds_fish_abund, display = "sites")) #save NMDS results into dataframe
-site.scrs <- cbind(site.scrs, Stream = data_sites$stream_name) #add grouping variable "Management" to dataframe
-site.scrs <- cbind(site.scrs, Group = data_sites$site_group) #add grouping variable of cluster grouping to dataframe
+site.scrs <- cbind(site.scrs, Stream = gradient_2$stream_name) #add grouping variable "Management" to dataframe
+site.scrs <- cbind(site.scrs, Group = gradient_2$site_group) #add grouping variable of cluster grouping to dataframe
 spp.scrs <- as.data.frame(scores(fish.spp.fit, display = "vectors")) #save species intrinsic values into dataframe
 spp.scrs <- cbind(spp.scrs, Species = rownames(spp.scrs)) #add species names to dataframe
 spp.scrs <- cbind(spp.scrs, pval = fish.spp.fit$vectors$pvals) #add pvalues to dataframe so you can select species which are significant
@@ -225,12 +221,12 @@ nmds.plot.abund <- site.scrs %>%
 nmds.plot.abund
 
 # Vectors
-fish.envfit <- envfit(nmds_fish_occup, data_sites, permutations = 999) # this fits environmental vectors
+fish.envfit <- envfit(nmds_fish_occup, gradient_2, permutations = 999) # this fits environmental vectors
 fish.spp.fit <- envfit(nmds_fish_occup, mat_fish_abund, permutations = 999) # this fits species vectors
 
 site.scrs <- as.data.frame(scores(nmds_fish_occup, display = "sites")) #save NMDS results into dataframe
-site.scrs <- cbind(site.scrs, Stream = data_sites$stream_name) #add grouping variable "Management" to dataframe
-site.scrs <- cbind(site.scrs, Group = data_sites$site_group) #add grouping variable of cluster grouping to dataframe
+site.scrs <- cbind(site.scrs, Stream = gradient_2$stream_name) #add grouping variable "Management" to dataframe
+site.scrs <- cbind(site.scrs, Group = gradient_2$site_group) #add grouping variable of cluster grouping to dataframe
 spp.scrs <- as.data.frame(scores(fish.spp.fit, display = "vectors")) #save species intrinsic values into dataframe
 spp.scrs <- cbind(spp.scrs, Species = rownames(spp.scrs)) #add species names to dataframe
 spp.scrs <- cbind(spp.scrs, pval = fish.spp.fit$vectors$pvals) #add pvalues to dataframe so you can select species which are significant
@@ -277,8 +273,15 @@ legend <- cowplot::get_legend(
 nmds_panel <- cowplot::plot_grid(prow, legend, rel_widths = c(3, 0.5))
 nmds_panel
 
-ggsave(filename = here("out", "fish_nmds.pdf"), plot = nmds_panel, 
-       device = cairo_pdf,  units = "in", width = 10, height = 3.5)
+
+# Save plot 
+path <- here::here("out", "r1_fish_nmds")
+ggsave(glue::glue("{path}.pdf"), plot = nmds_panel, 
+       width = 10, height = 3.5, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
+
 
 
 

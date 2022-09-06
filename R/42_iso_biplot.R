@@ -89,7 +89,7 @@ dat_cons_means <-
                                            ))
          ) %>% 
   mutate(site_id = fct_relevel(site_id, levels = c(
-    "MB01","SW01","LR00","MB02","SW02","LR02","LR03","MB03",
+    "MB01","SW01","LR01","MB02","SW02","LR02","LR03","MB03",
     "LR04","LR05","SW03","LR06","MB04","LR07","SW04","LR08"))
   ) %>% 
   rename(Compartment = resource) 
@@ -121,9 +121,10 @@ dat_cons_means %>%
 
 
 # Save it
-ggsave(filename = here("out", "sia_biplot.pdf"), 
-       plot = last_plot(), device = cairo_pdf, 
-       units = "in", width = 8.5, height = 8)
-
-
+path <- here::here("out", "r1_sia_biplot")
+ggsave(glue::glue("{path}.pdf"), plot = last_plot(), 
+       width = 8.5, height = 8, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
 

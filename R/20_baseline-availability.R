@@ -1,22 +1,12 @@
 # Baseline availability analyses
 
-## prep 
+## Prep -------------
 
-# packages
-library(tidyverse) 
-library(here)
-library(cowplot)
-
-# library(magrittr)  
-library(mgcv)  
-library(gratia)
-
-source(here("R", "fx_theme_pub.R"))
-theme_set(theme_Publication())
+source(here::here("R", "00_prep.R"))
 
 ## Data -------------
 
-gradient <- read_csv(here("out", "data_PCA_results.csv"))
+# gradient <- read_csv(here("out", "r1_PCA_results.csv"))
 chla <- read_csv(here("data", "chla.csv"))
 afdm <- read_csv(here("data", "afdm.csv"))
 
@@ -25,21 +15,17 @@ afdm <- read_csv(here("data", "afdm.csv"))
 
 # chla
 chla <- chla %>% 
-  # Remove Horse Creek Sites
   filter(!site_id %in% c("HC00","HC01","HC02","HC-DOS","HC-SLB")) %>% 
-  # Remove the spring 2017 sample event
   filter(sample_hitch != "H0") %>% 
-  # Get rid of missing data
+  filter(site_id != "LR01") %>%  # scouting
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   drop_na(BeforeAcid_ul) %>% 
-  # Merge the PC1
   left_join(gradient, by = "site_id") %>% 
-  # Wrnagle and calculate response metrics
   mutate(sample_hitch = fct_recode(sample_hitch, 
                                    June = "H1", Jul = "H2", Aug = "H3"),
          sample_hitch = fct_relevel(sample_hitch, 
                                     levels = c("June","Jul","Aug")), 
          sample_year = as.factor(sample_year), 
-         # Response metrics
          dilution_fct = mlSamp / (mlSamp + mlEtoh), 
          chla_ugmL = 2.05 * (BeforeAcid_ul-AfterAcid_ul) * 
            (ExtractVol_L/filtered_vol_L) * 
@@ -57,6 +43,8 @@ chla <- chla %>%
 afdm <- afdm %>%
   filter(!site_id %in% c("HC00","HC01","HC02","HC-DOS","HC-SLB")) %>% 
   filter(sample_hitch != "H0") %>% 
+  filter(site_id != "LR01") %>%  # scouting
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   drop_na(dry_mass_g) %>% 
   left_join(gradient, by = "site_id") %>% 
   mutate(sample_hitch = fct_recode(sample_hitch, 
@@ -64,7 +52,6 @@ afdm <- afdm %>%
          sample_hitch = fct_relevel(sample_hitch, 
                                     levels = c("June","Jul","Aug")), 
          sample_year = as.factor(sample_year), 
-         # Reponse mmetrics
          AFDM_g = dry_mass_g - ash_mass_g, 
          AFDM_mg_L = ((AFDM_g / vol_filtered_ml) * 1000) * 1000, 
          AFDM_ug_L = ((AFDM_g / vol_filtered_ml) * 1000), 
@@ -74,7 +61,7 @@ afdm <- afdm %>%
          AFDM_ug_L, 
          AFDM_mg_cm2)
 
-# Model fitting: chla seston -----------------------------
+# chla seston -----------------------------
 
 hist(chla$chla_ugmL)
 m1 <- gam(chla_ugmL ~ 
@@ -105,10 +92,10 @@ p.chla.ses <-
   geom_line(aes(PC1, fit, linetype = sample_hitch), size = 1) +
   geom_point(aes(shape = sample_year), 
              color = "black", size = 2, alpha = 0.5, shape = 21) + 
-  #scale_shape_manual(values = c(21, 24)) +
+  # scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C") +
   scale_fill_viridis_d(option = "C") +
-  # scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) + 
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) + 
   # scale_y_continuous(limits = c(-0.0008, 0.01), 
   #                    labels = scales::number_format(accuracy = 0.001)) +
   labs(x = "PC1", color = "Month", fill = 'Month', shape = "Year",
@@ -116,11 +103,11 @@ p.chla.ses <-
   guides(linetype = 'none', 
          color = 'none', 
          fill = guide_legend(override.aes = list(shape = 21))) + 
-  annotate(geom = "text", label = "'Deviance expl.' == '74.9%'",
-           x = min(data$PC1), y = 0.0095, hjust = 0, parse = TRUE, size = 4) 
+  annotate(geom = "text", label = "'Deviance expl.' == '73%'",
+           x = min(gradient$PC1), y = 0.0095, hjust = 0, parse = TRUE, size = 4) 
 p.chla.ses
 
-# Model fitting: chla fbom ----
+# chla fbom ----
 
 m2 <- gam(chla_ugmL ~ 
             sample_hitch + 
@@ -152,16 +139,16 @@ p.chla.fbom <-
   #scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C", guide = 'none') +
   scale_fill_viridis_d(option = "C") +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) + 
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) + 
   scale_y_continuous(limits = c(0,1.5)) + 
   labs(x = "PC1", color = "Month", fill = 'Month',
        y = expression(paste("FBOM chl ", alpha, " (", mu, "g mL"^-1, ")")))  +
   guides(linetype = 'none') + 
-  annotate(geom = "text", label = "'Deviance expl.' == '79.5%'",
-           x = min(data$PC1), y = 1.4, hjust = 0, parse = TRUE, size = 4) 
+  annotate(geom = "text", label = "'Deviance expl.' == '78.1%'",
+           x = min(gradient$PC1), y = 1.4, hjust = 0, parse = TRUE, size = 4) 
 p.chla.fbom
 
-# Model fitting: chla biofilm ----
+# chla biofilm ----
 
 # GAM and predictions
 m3 <- gam(chla_ug_cm2 ~ 
@@ -191,17 +178,17 @@ p.chla.biofilm <-
   #scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C", guide = 'none') +
   scale_fill_viridis_d(option = "C") +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) + 
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) + 
   scale_y_continuous(limits = c(0,3.5), 
                      labels = scales::number_format(accuracy = 0.1)) + 
   labs(x = "PC1", color = "Month", fill = 'Month',
        y = expression(paste("Biofilm chl ", alpha, " (", mu, "g cm"^-2, ")")))  +
   guides(linetype = 'none') + 
-  annotate(geom = "text", label = "'Deviance expl.' == '83.7%'",
+  annotate(geom = "text", label = "'Deviance expl.' == '83%'",
            x = 0, y = 0.01, hjust = 0, parse = TRUE, size = 4) 
 p.chla.biofilm
 
-# Model fitting: AFDM seston ----
+# AFDM seston ----
 # Lets check the 3 lm assumptions (Gaussian distribution, no interactions, linear)
 
 m4 <- gam(AFDM_mg_L ~ 
@@ -230,16 +217,16 @@ p.afdm.ses <-
   #scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C", guide = 'none') +
   scale_fill_viridis_d(option = "C") +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) + 
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) + 
   scale_y_continuous(limits = c(-0.2,2.25)) + 
   labs(x = "PC1", color = "Month", fill = 'Month',
        y = expression(paste("Seston AFDM (mg L"^-1, ")"))) +
   guides(linetype = 'none') + 
-  annotate(geom = "text", label = "'Deviance expl.' == '79.4%'",
-           x = min(data$PC1), y = 2.2, hjust = 0, parse = TRUE, size = 4) 
+  annotate(geom = "text", label = "'Deviance expl.' == '79.0%'",
+           x = min(gradient$PC1), y = 2.2, hjust = 0, parse = TRUE, size = 4) 
 p.afdm.ses
 
-# Model fitting: AFDM fbom ----
+# AFDM fbom ----
 
 m5 <- gam(
   AFDM_ug_L ~ sample_hitch + s(PC1, by = sample_hitch, k = 3), 
@@ -267,16 +254,16 @@ p.afdm.fbom <-
   #scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C", guide = 'none') +
   scale_fill_viridis_d(option = "C") +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) +
   scale_y_continuous(limits = c(-0.1,1.5)) +
   labs(x = "PC1", color = "Month", fill = 'Month',
        y = expression(paste("FBOM AFDM (mg L"^-1, ")"))) +
   guides(linetype = 'none') + 
-  annotate(geom = "text", label = "'Deviance expl.' == '73.3%'",
-           x = min(data$PC1), y = 1.5, hjust = 0, parse = TRUE, size = 4) 
+  annotate(geom = "text", label = "'Deviance expl.' == '72.1%'",
+           x = min(gradient$PC1), y = 1.5, hjust = 0, parse = TRUE, size = 4) 
 p.afdm.fbom
 
-# Model fitting: AFDM biofilm ----
+# AFDM biofilm ----
 
 m6 <- gam(
   AFDM_mg_cm2 ~ sample_hitch + s(PC1, by = sample_hitch, k = 3), 
@@ -304,13 +291,13 @@ p.afdm.bio <-
   #scale_shape_manual(values = c(21, 24)) +
   scale_color_viridis_d(option = "C", guide = 'none') +
   scale_fill_viridis_d(option = "C") +
-  scale_x_continuous(expand = c(0, 0), limits = c(0,9), breaks = seq(0,9,1)) + 
+  # scale_x_continuous(expand = c(0, 0), limits = c(0,8), breaks = seq(0,8,1)) + 
   scale_y_continuous(limits = c(-0.1,1.7)) + 
   labs(x = "PC1", color = "Month", fill = 'Month',
        y = expression(paste("Biofilm AFDM (mg cm"^-2, ")"))) +
   guides(linetype = 'none') + 
   annotate(geom = "text", label = "'Deviance expl.' == '87.4%'",
-           x = min(data$PC1), y = 1.6, hjust = 0, parse = TRUE, size = 4) 
+           x = min(gradient$PC1), y = 1.6, hjust = 0, parse = TRUE, size = 4) 
 p.afdm.bio
 
 
@@ -337,7 +324,12 @@ panel <- plot_grid(p.panel, legend, rel_widths = c(3, .3))
 panel
 
 # Save it
-ggsave(filename = here("out", "resource_availability.pdf"), 
-       plot = panel, device = cairo_pdf,
-       units = "in", width = 10, height = 5.5)
+path <- here::here("out", "r1_resource_availability")
+ggsave(glue::glue("{path}.pdf"), plot = p.pca.perm, 
+       width = 12, height = 7, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
 
+
+rm(m1, m2, m3, m4, m5, m6, panel, legend, p.panel, fit_gam)

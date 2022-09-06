@@ -1,31 +1,26 @@
 
 # This script tests for effects of the longitudinal gradient (PC1)
-# on fish community responces. Specifically:
+# on fish community responses. Specifically:
 
 # 1) fish abundance
 # 2) fish density
 # 3) fish taxa richness
 # 4) fish density as a function of fish taxa richness
 
-#===============================================================================
-# Load libraries and custom functions
-#===============================================================================
-library(tidyverse)
-library(here)
-library(mgcv)
-library(cowplot)
 
-# source("code/fx_theme_pub.R", chdir = TRUE)
-theme_set(theme_bw())
-#===============================================================================
-# Load data
-#===============================================================================
+# Prep -----
 
-data_all <- read_csv(here("out", "fish_structure_summary.csv"))
-gradient <- read_csv(here("out", "data_PCA_results.csv")) 
+source(here::here("R", "00_prep.R"))
 
-# Summarize data by site (across years) for analysis and plotting
-data <- data_all %>% 
+# Data -----
+
+fish_community_summary <- read_csv(here("out", "r1_fish_structure_summary.csv"))
+gradient <- read_csv(here("out", "r1_PCA_results.csv"))
+
+# Process -----
+
+# Prep data for summary
+data <- fish_community_summary %>% 
   filter(sample_year %in% c(2016, 2017, 2018)) %>% 
   select(-stream_name) %>% 
   unite(site_yr, sample_year, site_id, remove = FALSE)%>%
@@ -82,12 +77,13 @@ summary(lm_rich_log)
 glm_rich <- glm(richness ~ PC1, family = Gamma(link = "log"), data = data)
 summary(glm_rich)
 
-gam_rich <- data %>% gam(richness ~ s(PC1, k = 5), data = ., method = "REML")
-gam_richre <- data %>% gam(richness ~ s(PC1, k = 5) + s(site_id, bs="re"), data = ., method = "REML")
+gam_rich <- data %>% gam(richness ~ s(PC1, k = 3), data = ., method = "REML")
+gam_richre <- data %>% gam(richness ~ s(PC1, k = 3) + s(site_id, bs="re"), data = ., method = "REML")
 summary(gam_rich)
 plot(gam_rich, residuals = TRUE, pch = 1, cex = 1)
 gratia::appraise(gam_rich)
 
+AIC(lm_rich, lm_rich_log, glm_rich, gam_rich, gam_richre)
 
 summary(lm_rich_log)
 
@@ -96,22 +92,18 @@ p.richness <-
   ggplot(aes(x = PC1, y = richness)) +    
   geom_smooth(method = "lm", color = "black") + 
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_log10(limits = c(1,50), breaks=c(1,10,50)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "log Fish taxa richness", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "log Fish taxa richness", 
        fill = "Stream System") + 
   annotate(geom = "text", x = 0.5, y = 50, parse = TRUE, size = 4, hjust = 0,
-           label = as.character(expression(paste(F['1,38']==117.61,", ",italic(P),' < ',0.001)))) +
+           label = as.character(expression(paste(F['1,38']==122.3,", ",italic(P),' < ',0.001)))) +
   annotate(geom = "text", x = 0.5, y = 30, parse = TRUE, size = 4,hjust = 0,
-           label = as.character(expression(paste(R['adj']^2==0.75)))) +
+           label = as.character(expression(paste(R['adj']^2==0.76)))) +
   theme(legend.position = c(0.8, 0.2))
 p.richness
-
-# ggsave(filename = "figs/fish_community_richness.pdf", 
-#        plot = p.richness, device = cairo_pdf, 
-#        units = "in", width = 5.5, height = 5)
 
 #===============================================================================
 # Fish absolute abundance
@@ -148,7 +140,7 @@ gratia::draw(gam_abund)
 #          upr = fit + 2 * se.fit) %>% 
 #   select(-se.fit)
 
-# Custom plot using GAM predictions
+# Custom plot using  predictions
 summary(lm_abund_log)
 
 p.abundance <- 
@@ -156,16 +148,16 @@ p.abundance <-
   ggplot(aes(x = PC1, y = abund)) +    
   geom_smooth(method = "lm", color = "black") + 
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_log10(limits = c(10,1000), breaks=c(10,100,1000)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "log Fish abundance (n0. indiv.)",
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "log raw abundance (no. indiv.)",
        fill = "Stream System") +
   annotate(geom = "text", x = 0.5, y = 1000, parse = TRUE, size = 4, hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,38']==211.7,", ",italic(P),' < ',0.001)))) +
+           label = as.character(expression(paste(F['1,38']==256.2,", ",italic(P),' < ',0.001)))) +
   annotate(geom = "text", x = 0.5, y = 700, parse = TRUE, size = 4,hjust = 0, vjust = 1,
-           label = as.character(expression(paste(R['adj']^2==0.85)))) 
+           label = as.character(expression(paste(R['adj']^2==0.87)))) 
 p.abundance
 
 # ggsave(filename = "figs/fish_community_abund.pdf", 
@@ -211,16 +203,16 @@ summary(lm_density_log)
 p.desnity <- 
   data %>%  
   ggplot(aes(x = PC1, y = density)) +    
-  geom_smooth(method = "lm", color = "black") + 
+  geom_smooth(method = "lm", color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_log10(limits = c(0.01,0.15), breaks=c(0.01,0.07, 0.15)) +
-  labs(title = "", x = "Long. gradient (PC1)", y = bquote('log Fish density ('*'no' ~ m^-2*')'), 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = bquote('log Fish density ('*'no' ~ m^-2*')'), 
        fill = "Stream System") +
   annotate(geom = "text", x = 0.5, y = 0.15, parse = TRUE, size = 4, hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,38']==4.28,", ",italic(P)==0.05)))) +
+           label = as.character(expression(paste(F['1,38']==3.18,", ",italic(P)==0.05)))) +
   annotate(geom = "text", x = 0.5, y = 0.12, parse = TRUE, size = 4,hjust = 0, vjust = 1,
            label = as.character(expression(paste(R['adj']^2==0.08)))) 
 p.desnity
@@ -260,13 +252,13 @@ p.shannon <-
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") +   
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(0,3), breaks = seq(0,3,1)) +
-  labs(title = "", x = "Long. gradient (PC1)", y = "Shannon diversity", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Shannon diversity", 
        fill = "Stream System") +
-  annotate(geom = "text", x = 0.5, y = 3, parse = TRUE, size = 4, hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,38']==66.65,", ",italic(P),' <',0.001)))) +
-  annotate(geom = "text", x = 0.5, y = 3*0.9, parse = TRUE, size = 4,hjust = 0, vjust = 1,
+  annotate(geom = "text", x = 0.5, y = 2.9, parse = TRUE, size = 4, hjust = 0, vjust = 1,
+           label = as.character(expression(paste(F['1,38']==68,", ",italic(P),' <',0.001)))) +
+  annotate(geom = "text", x = 0.5, y = 2.9*0.9, parse = TRUE, size = 4,hjust = 0, vjust = 1,
            label = as.character(expression(paste(R['adj']^2==0.63)))) 
 p.shannon
 

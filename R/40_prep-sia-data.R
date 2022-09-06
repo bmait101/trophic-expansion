@@ -3,12 +3,9 @@
 
 # Set up ------------------------------------------------------------------
 
-# Libraries
-library(tidyverse)
-library(here)
+## Prep -------------
+source(here::here("R", "00_prep.R"))
 
-# source("code/fx_theme_pub.R", chdir = TRUE)
-theme_set(theme_bw())
 
 ## Data --------------------
 
@@ -20,7 +17,7 @@ meta_invert <-
   read_csv(here("data", "metadata_bugs.csv")) %>% 
   select(taxon_code, ffg) 
 
-gradient <- read_csv(here("out", "data_PCA_results.csv"))
+gradient <- read_csv(here("out", "r1_PCA_results.csv"))
 
 
 # NAs ------------------
@@ -45,6 +42,7 @@ sia_tidy <- sia_raw %>%
   # Remove Horse Creek and other test sites
   filter(! stream_name %in% c("Horse")) %>% 
   filter(! site_id %in% c("LR01","LR067","MONO","Mono")) %>% 
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   # set grouping vars as factors
   mutate_if(is.character, as.factor) %>% 
   # remove columns not needed for niche space analyses

@@ -7,34 +7,14 @@
 
 
 ## prep ---------------------------------
+source(here::here("R", "00_prep.R"))
+pacman::p_load(GGally, ggpubr, ggpubr, factoextra, dendextend, pvclust)
 
-# packages
-library(tidyverse)
-library(here)
-
-library(GGally)       # colinearity and pairs plots
-library(ggpubr)       # quick density and Q-Q plots
-library(factoextra)  # working with pca and dendrograms
-library(dendextend)  # working with dendrogram objects
-library(pvclust)
-
-# custom theme
-source(here("R", "fx_theme_pub.R"))
-
-# stream labels
-label_streams <- c("Laramie","MedBow","Sweetwater","Horse")
-
-# site id labels
-label_sites_ids <- 
-  c("LR00","LR01","LR02","LR03","LR04","LR05","LR06","LR07","LR08",
-    "MB01","MB02","MB03","MB04",
-    "SW01","SW02","SW03","SW04",
-    "HC00","HC01","HC02")
 
 ## data  -------------------------------------------------------
-site_data <- read_csv(here("data", "site_environment.csv"), 
+site_data <- read_csv(here("data", "site_covariates.csv"), 
   col_types = cols(
-    site_id = col_factor(levels = label_sites_ids),
+    # site_id = col_factor(levels = label_sites_ids),
     site_name = col_character(),
     drainage_basin = col_factor(levels = NULL),
     state = col_factor(levels = NULL),
@@ -55,6 +35,8 @@ site_data <- read_csv(here("data", "site_environment.csv"),
 # clean up
 site_data_clean <- site_data %>% 
   filter(stream_name != "Horse") %>%  # scouting
+  filter(site_id != "LR01") %>%  # scouting
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
   select(
     site_id, stream_name, 
     Elevation, Sthlr_order, Drainage_area, Dist_N_Platte, Gradient,
@@ -213,7 +195,7 @@ cowplot::plot_grid(
 
 # Eigen permutation test ----------------------
 
-#Make funtion for permutation "test" for PCA axes
+# Make function for permutation "test" for PCA axes
 pca_eigenperm <- 
   function(data, nperm = 1000) {
     pca_out   <- prcomp(data, scale. = TRUE)
@@ -249,24 +231,30 @@ fa_pca_rand95_long <-
   as_tibble()
 
 # Plot obserbed vs. random eigevalues
-fa_pca_rand95_long %>% 
+p.pca.perm <- 
+  fa_pca_rand95_long %>% 
   ggplot(aes(PC, Value, fill = Variable)) +
   geom_bar(stat = "identity", position = position_dodge(), color = "black") +
   labs(y = "Eigenvalue", x = "", fill = "", 
        title = "Observed vs. Random PCA Eigenvalues") +
   scale_fill_grey() + 
-  # theme_Publication() + 
+  theme_Publication() +
   theme(legend.position = c(0.3, 0.9))
+p.pca.perm
 
 # save plot
-# ggsave(here("figs1", "pca_eigen_perm_test.pdf"), 
-#        plot = last_plot(), device = cairo_pdf,
-#        units = "in", width = 6, height = 5)
+path <- here::here("out", "r1_pca_eigen_perm")
+ggsave(glue::glue("{path}.pdf"), plot = p.pca.perm, 
+       width = 6, height = 5, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
+
 
 # Custom PCA biplot ------------------------------------
 
 # Biplot of individuals and variables
-factoextra::fviz_pca_biplot(
+p.pca.biplot <- factoextra::fviz_pca_biplot(
   pca_01, 
   habillage = site_data_clean$stream_name,
   geom.ind = c("point", "text"), 
@@ -278,28 +266,31 @@ factoextra::fviz_pca_biplot(
   repel = TRUE     # Avoid text overlapping
 ) + 
   labs(title = "", 
-       x = "PC1 (75.7%)", 
-       y = "PC2 (12.0%)", 
+       # x = "PC1 (75.7%)", 
+       # y = "PC2 (12.0%)", 
        color = "Stream System"
        ) +
-  # theme_Publication() +
+  theme_Publication() +
   theme(legend.position = c(0.8, 0.9))  +
   guides(shape = 'none') + 
-  scale_x_continuous(breaks = seq(-4, 5, 1), 
-                     limits = c(-4,5)) + 
+  scale_x_continuous(breaks = seq(-4, 4, 1), 
+                     limits = c(-4,4)) + 
   scale_y_continuous(limits = c(-2.5, 2.5), breaks = c(-2,-1,0,1,2)) + 
   scale_color_brewer(palette = "Dark2", 
                      guide = guide_legend(reverse = TRUE,
                                           override.aes = list(alpha = 1, size = 3)))
 
 # save
-# ggsave(filename = here("figs1", "pca_biplot.pdf"), 
-#        plot = last_plot(), device = cairo_pdf,
-#        units = "in", width = 8, height = 5)
+path <- here::here("out", "r1_pca_biplot")
+ggsave(glue::glue("{path}.pdf"), plot = p.pca.biplot, 
+       width = 8, height = 5, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
 
 
 # export data ------------------------
-pca_fit_tbl <- 
+gradient <- 
   as_tibble(
     rownames_to_column(
       as.data.frame(pca_01$x), 
@@ -311,28 +302,27 @@ pca_fit_tbl <-
   arrange(PC1)
 
 # check it 
-pca_fit_tbl
+gradient
 
 # write 
-pca_fit_tbl %>% write_csv(here("out", "data_PCA_results.csv"))
+gradient %>% write_csv(here("out", "r1_PCA_results.csv"))
 
 
-# Expot table for manuscript ------------------
+# Export table for manuscript ------------------
 
-# # clean up
-# table_for_paper <- 
-#   pca_fit_tbl %>% 
-#   left_join(site_data, by = "site_id") %>% 
-#   filter(site_id != "LR01") %>%    
-#   select(site_group, site_id, lat, lon, PC1, Elevation, Gradient, Dist_N_Platte, 
-#          Sthlr_order, Site_width, Temp_warm, Drainage_area) %>% 
-#   mutate(across(c(Elevation, Dist_N_Platte, Drainage_area), round, 0)) %>% 
-#   mutate(across(c(Temp_warm), round, 1)) %>% 
-#   mutate(across(c(PC1, Site_width), round, 2)) %>% 
-#   mutate(across(c(Gradient), round, 3)) 
-# 
-# # check it
-# table_for_paper
-# 
-# # write 
-# table_for_paper %>% write_csv(here("out", "site_enviro_pca_table.csv"))
+# clean up
+table_for_paper <-
+  gradient %>%
+  left_join(site_data, by = "site_id") %>%
+  select(site_group, site_id, lat, lon, PC1, Elevation, Gradient, Dist_N_Platte,
+         Sthlr_order, Site_width, Temp_warm, Drainage_area) %>%
+  mutate(across(c(Elevation, Dist_N_Platte, Drainage_area), round, 0)) %>%
+  mutate(across(c(Temp_warm), round, 1)) %>%
+  mutate(across(c(PC1, Site_width), round, 2)) %>%
+  mutate(across(c(Gradient), round, 3))
+
+# check it
+table_for_paper
+
+# write
+table_for_paper %>% write_csv(here("out", "r1_site_enviro_pca_table.csv"))

@@ -1,29 +1,15 @@
 
 # Invertebrate community analyses
 
-## Prep
-
-# libraries
-library(tidyverse)
-library(here)
-library(vegan)
-library(mgcv)
-library(cowplot)
-
-source(here("R", "fx_theme_pub.R"))
-theme_set(theme_bw())
+## Prep --------
+source(here::here("R", "00_prep.R"))
 
 ## Data --------------
 
-# invertebrate field data
 bugs <- read_csv(here("data", "sample_log_bugs.csv")) 
-
-# taxon affinity score for fizzy coding
 bugs_meta <- read_csv(here("data", "metadata_bugs.csv")) %>% 
   select(taxon_code, ffg, ffg_shd, ffg_col, ffg_grz, ffg_prd)
-
-# PC longitudinal gradient
-gradient <- read_csv(here("out", "data_PCA_results.csv"))
+gradient <- read_csv(here("out", "r1_PCA_results.csv"))
 
 
 ## Clean up and summarize counts by site-taxon
@@ -31,6 +17,7 @@ bugs_clean <- bugs %>%
   # filter
   filter(stream_name != "Mono") %>%  # test site
   filter(site_id != "LR01")%>%        # test site
+  mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |>
   filter(! site_id %in% c("SW-DG","SW-SRR","SW-WR")) %>% # SW test sites
   filter(sample_year == "2016") %>%   # restrict to 2016
   filter(gear_type=="dnet") %>%  # dnet data only (no HESS samples)
@@ -53,7 +40,6 @@ bugs_clean <- bugs %>%
   filter(! ffg %in% c(
     "terrestrial-collector","terrestrial-herbivore","terrestrial-predator")
     )
-bugs_clean
 
 # Make a sites by species matirx (wide data)
 bugs_clean_w <- bugs_clean %>% 
@@ -62,7 +48,6 @@ bugs_clean_w <- bugs_clean %>%
             abund = sum(n)) %>% 
   # spread obs to make wide table
   spread(taxon_code, abund, fill = 0) 
-bugs_clean_w
 
 # Set the abundance matrix to its own df
 bugs_clean_w_m <- as.matrix(bugs_clean_w[2:ncol(bugs_clean_w)])
@@ -83,7 +68,7 @@ sites_present <- sites_present %>%
   arrange(desc(occupancy)) %>% 
   arrange(ffg, taxon_code) %>% 
   rename(FFG = ffg, Species = taxon_code, Occupancy=occupancy) %>% 
-  write_csv(here("out", "bug_species_occupancy.csv"))
+  write_csv(here("out", "r1_invert_species_occupancy.csv"))
 
 
 (site_richness <-
@@ -97,7 +82,7 @@ bug_summary <- bugs_clean %>%
             abund = sum(n)) %>%
   bind_cols(site_richness) %>%
   left_join(gradient, by = "site_id")
-bug_summary
+
 
 
 
@@ -121,12 +106,30 @@ rare_rich_tbl <- rare_rich %>%
   enframe() %>%
   rename(site_id = name, rare_rich = value)
 
+
+
 # add rarefied richness to summary table
 bug_summary <- bug_summary %>% left_join(rare_rich_tbl, by = "site_id")
 
 # test for effect of gradeint on rarefied invert taxon richness
+lm_rich <- lm(data = bug_summary, richness ~ PC1)
+summary(lm_rich)
 lm_rich <- lm(data = bug_summary, rare_rich ~ PC1)
 summary(lm_rich)
+
+# plot richness vs gradient
+p.richness <- 
+  bug_summary %>%
+  ggplot(aes(x = PC1, y = richness)) +    
+  ggpubr::stat_cor(method = "pearson", label.x = 0.5) + 
+  geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_y_log10(limits = c(1,50), breaks=c(1,10,50)) +
+  scale_color_brewer(palette = "Dark2") + 
+  scale_fill_brewer(palette = "Dark2") + 
+  labs(title = "", x = "Long. gradient (PC1)", y = "Raw Invertebrte taxa richness", 
+       fill = "Stream System")
+p.richness
 
 # plot richness vs gradient
 p.richness <- 
@@ -134,11 +137,11 @@ p.richness <-
   ggplot(aes(x = PC1, y = rare_rich)) +    
   ggpubr::stat_cor(method = "pearson", label.x = 0.5) + 
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
   # scale_y_log10(limits = c(1,50), breaks=c(1,10,50)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "Invertebrte taxa richness", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Rarefied Invertebrte taxa richness", 
        fill = "Stream System")
 p.richness
 
@@ -174,8 +177,8 @@ fit_gam <- gam_KUD95 %>%
   select(-se.fit)
 summary(gam_KUD95) # gam style summary of fitted model
 
-model_label <- c("s(PC1, 1.64)",
-                 "'Deviance expl.' == '69.5%'")
+model_label <- c("s(PC1, 1.2)",
+                 "'Deviance expl.' == '68.7%'")
 
 p.shd <- ffgs %>% 
   bind_cols(fit_gam) %>% 
@@ -184,13 +187,13 @@ p.shd <- ffgs %>%
               alpha = 0.5, fill = "grey") +
   geom_line(aes(PC1, fit_gam), size = 1, color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
   #scale_y_continuous(breaks=seq(1.8,2.1,0.1)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
   annotate(geom = "text", x = 3, y = c(3, 3*0.9), 
            hjust = 0, vjust = 1,  label = model_label, parse = TRUE, size = 4) + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "Shredder FFG trait affinity", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Shredder FFG trait affinity", 
        fill = "Stream System")
 p.shd
 
@@ -202,19 +205,19 @@ p.col <-
   ggplot(aes(x = PC1, y = mean_col)) +    
   geom_smooth(method = "lm", color = "black") + 
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
   scale_y_continuous(breaks=seq(1.8,2.1,0.1)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "Collector FFG trait affinity", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Collector FFG trait affinity", 
        fill = "Stream System") +
   annotate(geom = "text", x = 0.5, y = 2.1, parse = TRUE, size = 4,
            hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,14']==5.6,", ",
-                                                 italic(P)==0.3)))) +
+           label = as.character(expression(paste(F['1,14']==6.7,", ",
+                                                 italic(P)==0.02)))) +
   annotate(geom = "text", x = 0.5, y = 2.1*0.98, parse = TRUE, size = 4,
            hjust = 0, vjust = 1,
-           label = as.character(expression(paste(R['adj']^2==0.23))))
+           label = as.character(expression(paste(R['adj']^2==0.27))))
 p.col
 
 # Fit linear model
@@ -225,19 +228,19 @@ p.grz <-
   ggplot(aes(x = PC1, y = mean_grz)) +    
   geom_smooth(method = "lm", color = "black") + 
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
   # scale_y_continuous(breaks=seq(1.8,2.1,0.1)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "Grazer FFG trait affinity", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Grazer FFG trait affinity", 
        fill = "Stream System") +
   annotate(geom = "text", x = 4, y = 1.9, parse = TRUE, size = 4, 
            hjust = 0, vjust = 1,
-           label = as.character(expression(paste(F['1,14']==4.7,", ",
+           label = as.character(expression(paste(F['1,14']==4.4,", ",
                                                  italic(P)==0.05)))) +
   annotate(geom = "text", x = 4, y = 1.9*0.96, parse = TRUE, size = 4,
            hjust = 0, vjust = 1,
-           label = as.character(expression(paste(R['adj']^2==0.20))))
+           label = as.character(expression(paste(R['adj']^2==0.19))))
 p.grz
 
 p.prd <- 
@@ -245,11 +248,11 @@ p.prd <-
   ggplot(aes(x = PC1, y = mean_prd)) +    
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
   ggpubr::stat_cor(method = "pearson", label.x = 0.5) + 
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  # scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
   scale_y_continuous(limits = c(2.5,2.9), breaks=seq(2.5,2.9,0.1)) +
   scale_color_brewer(palette = "Dark2") + 
   scale_fill_brewer(palette = "Dark2") + 
-  labs(title = "", x = "Long. gradient (PC1)", y = "Predator FFG trait affinity", 
+  labs(title = "", x = "Longitunal gradient (PC1)", y = "Predator FFG trait affinity", 
        fill = "Stream System")
 p.prd
 
@@ -270,22 +273,25 @@ bottom_row <- plot_grid(p.grz + theme(legend.position="none") +
 panel <- plot_grid(p.richness, middle_row, bottom_row, labels = c('A', '', ''),
                    ncol = 1)
 
-# ggsave(filename = here("out", "invert_ffgs.pdf"), 
-#        plot = panel, device = cairo_pdf, 
-#        units = "in", width = 8, height = 10)
 
 
+path <- here::here("out", "r1_invert_ffgs")
+ggsave(glue::glue("{path}.pdf"), plot = panel, 
+       width = 8, height = 10, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
 
 
 # NMDS ---------------------------------------------------------------------
 
 # Set dataframs
 mat_fish_occup <- as.matrix((BCI > 0) + 0)
-data_sites <- data_sites %>% 
+gradient_2 <- gradient %>% 
   arrange(site_id) %>% 
   select(-site_id, -PC1, -PC2) %>% 
   as.data.frame()
-rownames(data_sites) <- rownames(mat_fish_occup)
+rownames(gradient_2) <- rownames(mat_fish_occup)
 
 # run nmds
 nmds_fish_occup <- metaMDS(mat_fish_occup,
@@ -302,12 +308,12 @@ plot(nmds_fish_occup, type = "t")
 stressplot(nmds_fish_occup) # Produces a Shepards diagram
 
 # Plotting NMDS
-fish.envfit <- envfit(nmds_fish_occup, data_sites, permutations = 999) # this fits environmental vectors
+fish.envfit <- envfit(nmds_fish_occup, gradient_2, permutations = 999) # this fits environmental vectors
 fish.spp.fit <- envfit(nmds_fish_occup, mat_fish_occup, permutations = 999) # this fits species vectors
 
 site.scrs <- as.data.frame(scores(nmds_fish_occup, display = "sites")) #save NMDS results into dataframe
-site.scrs <- cbind(site.scrs, Stream = data_sites$stream_name) #add grouping variable "Management" to dataframe
-site.scrs <- cbind(site.scrs, Group = data_sites$site_group) #add grouping variable of cluster grouping to dataframe
+site.scrs <- cbind(site.scrs, Stream = gradient_2$stream_name) #add grouping variable "Management" to dataframe
+site.scrs <- cbind(site.scrs, Group = gradient_2$site_group) #add grouping variable of cluster grouping to dataframe
 spp.scrs <- as.data.frame(scores(fish.spp.fit, display = "vectors")) #save species intrinsic values into dataframe
 spp.scrs <- cbind(spp.scrs, Species = rownames(spp.scrs)) #add species names to dataframe
 spp.scrs <- cbind(spp.scrs, pval = fish.spp.fit$vectors$pvals) #add pvalues to dataframe so you can select species which are significant
@@ -332,9 +338,16 @@ nmds.plot.occup <- site.scrs %>%
   guides(fill = guide_legend(override.aes=list(shape=21)))
 nmds.plot.occup
 
-# ggsave(filename = here("figs1","invert_nmds.pdf"), 
-#        plot = nmds.plot.occup, device = cairo_pdf,  
-#        units = "in", width = 7, height = 4)
+
+path <- here::here("out", "r1_invert_nmds")
+ggsave(glue::glue("{path}.pdf"), plot = nmds.plot.occup, 
+       width = 10, height = 6, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
+
+
+
 
 # NMDS data extracition
 # Extract nmds site coordinates for axis 1 and 2

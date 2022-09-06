@@ -1,21 +1,16 @@
 
 # Baseline resource isotopic variability
 
-# Libraries ----
-library(tidyverse)  
-library(here)
-library(mgcv)
-library(gratia)
-library(cowplot)
-library(broom)
+## Prep -------------
 
-# source("code/fx_theme_pub.R", chdir = TRUE)
-theme_set(theme_bw()) 
+source(here::here("R", "00_prep.R"))
 
 ## Data -------------------------------------
 
 source(here("R", "40_prep-sia-data.R"))
-lg <- read_csv(here("out", "data_PCA_results.csv"))
+
+
+# Process ------------------------
 
 # Tidy up data
 baseline <- sia_baselines %>% 
@@ -30,7 +25,7 @@ baseline <- sia_baselines %>%
   filter(yr_site != "2017_LR05")  
 
 baseline <- baseline %>%
-  left_join(lg, by = "site_id")
+  left_join(gradient, by = "site_id")
 
 baseline_var <- 
   baseline %>% 
@@ -39,7 +34,7 @@ baseline_var <-
             d13C_CV = sd(d13C)/mean(d13C),
             d15N_range = max(d15N)-min(d15N),
             d15N_CV = sd(d15N)/mean(d15N)) %>%
-  left_join(lg, by = "site_id")
+  left_join(gradient, by = "site_id")
 baseline_var
 
 # Cor tests  -----------------------------------------
@@ -80,7 +75,7 @@ p.bl.c.mean <- baseline %>%
   # geom_line(aes(PC1, fit), size = 1, color = "black") +
   ggpubr::stat_cor(method = "pearson", label.x = 0.5, label.y = -12, vjust = 1) + 
   geom_point(aes(fill = resource, shape = resource), color = "black", size = 2) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(-36,-12), breaks = seq(-36,-12,6)) +
   scale_shape_manual(values = c(21,22,23,24,25), guide = 'none')  +
   scale_color_brewer(palette = "Set1") + 
@@ -123,7 +118,7 @@ p.bl.c.range <-
   # geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
   # geom_line(aes(PC1, fit), size = 1, color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(4,16), breaks = seq(4,16,2)) +
   # ggrepel::geom_text_repel(aes(label = site_id)) + 
   scale_color_brewer(palette = "Dark2") + 
@@ -163,11 +158,11 @@ p.bl.c.cv <-
   baseline_var %>%
   #bind_cols(rich_pred) %>% 
   ggplot(aes(PC1, d13C_CV)) +
-  ggpubr::stat_cor(method = "pearson", label.x = 0.5, label.y = -0.04, vjust = 1) + 
+  ggpubr::stat_cor(method = "pearson", label.x = 0.5, label.y = -0.04, vjust = 1) +
   # geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
   # geom_line(aes(PC1, fit), size = 1, color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(-0.18,-0.04), breaks = seq(-0.18,-0.04,0.02)) +
   # ggrepel::geom_text_repel(aes(label = site_id)) + 
   scale_color_brewer(palette = "Dark2") + 
@@ -211,7 +206,7 @@ p.bl.n.mean <-
   geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
   geom_line(aes(PC1, fit), size = 1, color = "black") +
   geom_point(aes(fill = resource, shape = resource), color = "black", size = 2) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(-1,9), breaks = seq(0,9,3)) +
   scale_shape_manual(values = c(21,22,23,24,25), guide = 'none')  +
   scale_color_brewer(palette = "Set1") + 
@@ -222,11 +217,11 @@ p.bl.n.mean <-
   annotate(geom = "text", x = 0.5, y = 9, 
            parse = TRUE, size = 4, hjust = 0, vjust = 1,
            label = as.character(expression(
-             paste(F['1,384']==138.9,", ",italic(P),' < ',0.001)))) +
+             paste(F['1,384']==130,", ",italic(P),' < ',0.001)))) +
   annotate(geom = "text", x = 0.5, y = 9*0.9, 
            parse = TRUE, size = 4,hjust = 0, vjust = 1,
            label = as.character(expression(
-             paste(R['adj']^2==0.26)))) + 
+             paste(R['adj']^2==0.25)))) + 
   guides(fill = guide_legend(override.aes = list(shape = c(21,22,23,24,25))))
 p.bl.n.mean
 
@@ -255,12 +250,12 @@ p.bl.n.range <-
   baseline_var %>%
   # bind_cols(rich_pred) %>%
   ggplot(aes(PC1, d15N_range)) +
-  # ggpubr::stat_cor(method = "pearson", label.x = 0.5, label.y = 6, vjust = 1) + 
+  ggpubr::stat_cor(method = "pearson", label.x = 0.5, label.y = 6, vjust = 1) +
   # geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
   # geom_line(aes(PC1, fit), size = 1, color = "black") +
   #geom_smooth(color = "black", method = "lm")  +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(2,6), breaks = seq(2,6,1)) +
   # ggrepel::geom_text_repel(aes(label = site_id)) + 
   # ggrepel::geom_text_repel(aes(label = sample_year), hjust= 1) + 
@@ -314,7 +309,7 @@ p.bl.n.cv <-
   # geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
   # geom_line(aes(PC1, fit), size = 1, color = "black") +
   geom_point(aes(fill = stream_name), color = "black", size = 3, shape = 21) +
-  scale_x_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_x_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   scale_y_continuous(expand=c(0,0), limits=c(0,1), breaks = seq(0,1,1)) +
   # ggrepel::geom_text_repel(aes(label = sample_year)) + 
   scale_color_brewer(palette = "Dark2") + 
@@ -327,7 +322,11 @@ p.bl.n.cv <-
   #          hjust = 0, label = model_label, parse = TRUE, size = 3)
 p.bl.n.cv
 
-# Panel Plot ---- 
+
+
+
+# Panel Plot ---------------------------------
+
 # Build panels
 p.panel <- cowplot::plot_grid(
   p.bl.c.mean + theme(legend.position="none") + theme(plot.margin=unit(c(1,1,1,1),"mm")), 
@@ -356,5 +355,13 @@ p.panel.full
 ggsave(filename = here("out", "resource_sia_var.pdf"), 
        plot = p.panel.full, device = cairo_pdf,
        units = "in", width = 10, height = 5.5)
+
+# Save it
+path <- here::here("out", "r1_resource_sia_var")
+ggsave(glue::glue("{path}.pdf"), plot = p.panel.full, 
+       width = 10, height = 5.5, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
 
 

@@ -1,10 +1,10 @@
 
 # Plot fish species occurance and rel. abundance along gradient
 
-## Prep --------------------
+# Prep -----
 
-# libraries
-library(tidyverse)
+source(here::here("R", "00_prep.R"))
+fish_meta <- read_csv(here("data", "metadata_fishes.csv"))
 
 # some labels
 fam_levels <- c("Catostomidae","Centrarchidae","Clupeidae",
@@ -14,7 +14,7 @@ origin_levels <- c("Native","NonNative")
 
 ## Data ------------------
 
-fish_spp_abundnace <- read_csv(here("out", "fish_spp_counts.csv"))
+fish_spp_abundnace <- read_csv(here("out", "r1_fish_spp_counts.csv"))
 
 den <- fish_spp_abundnace %>% 
   filter(stream_name != "Horse") %>% 
@@ -25,7 +25,7 @@ data <- data_field %>%
   group_by(site_id, taxon_code) %>%
   summarise(count = sum(count)) %>% 
   left_join(gradient, by = "site_id") %>% 
-  left_join(fish, by = "taxon_code") %>% 
+  left_join(fish_meta, by = "taxon_code") %>% 
   mutate(site_group = factor(site_group, levels = c("Upstream", "Midstream", "Downstream")), 
          family = factor(family, levels = fam_levels), 
          origin = factor(origin, levels = origin_levels)) %>% 
@@ -42,11 +42,11 @@ spp_dist <-
   coord_flip(clip = "off") +
   geom_point(aes(fill = trophic_group, shape = origin, size = density), color = "black") +
   scale_shape_manual(values = c(21, 24), name = "Origin") +
-  labs(y = "Long. Gradient (PC1)",
+  labs(y = "Longitunal Gradient (PC1)",
        x = "Fish species", size = "Density",
        fill = "Trophic Group") +
   scale_fill_brewer(palette = "Set1") +
-  scale_y_continuous(expand=c(0,0), limits=c(-0.25,9), breaks = seq(0,9,1)) +
+  scale_y_continuous(expand=c(0,0), limits=c(-0.25,8), breaks = seq(0,8,2)) +
   guides(fill = guide_legend(override.aes=list(shape=21))) +
   theme(legend.key.size = unit(0.5, "cm"), 
         legend.title = element_text(face = "plain"), 
@@ -76,8 +76,13 @@ top_row <- plot_grid(
 panel <- plot_grid(top_row, spp_dist, labels = c('', 'D'), ncol = 1, rel_heights = c(0.7, 1))
 panel
 
-# ggsave(filename = here("out", "fish_comm_panel.pdf"), 
-#        plot = panel, device = cairo_pdf, 
-#        units = "in", width = 11, height = 8)
+# Save it
+path <- here::here("out", "r1_fish_comm_panel")
+ggsave(glue::glue("{path}.pdf"), plot = panel, 
+       width = 11, height = 8, device = cairo_pdf)
+pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
+                      filenames = glue::glue("{path}.png"),
+                      format = "png", dpi = 300)
+
 
 
