@@ -1,8 +1,6 @@
 # Custom ggplot2 theme for publication quality plots
 
 theme_Publication <- function(base_size=12, base_family="Helvetica") {
-  # ggthemes for "theme_foundation" - better than building off a default theme
-  #library(ggthemes)
   
   # Begin construction of chart
   theme_bw(base_size = base_size, base_family = base_family) %+replace% 
