@@ -6,7 +6,8 @@ source(here("R", "40_prep-sia-data.R"))
 
 dat <- sia_tidy %>% 
   filter(sample_year %in% c(2016, 2017)) %>% 
-  select(-length_mm, -sia_sample_id)
+  select(-length_mm, -sia_sample_id) %>% 
+  filter(yr_site != "2017_LR05")  # lost most of the samples so removed 
 dat
 
 levels(dat$compartment)
@@ -120,7 +121,7 @@ dat_cons_means %>%
 
 
 # Save it
-path <- here::here("out", "r1_sia_biplot_v3")
+path <- here::here("out", "r1_sia_biplot_v2")
 ggsave(glue::glue("{path}.pdf"), plot = last_plot(), 
        width = 8.5, height = 7.5, device = cairo_pdf)
 pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
