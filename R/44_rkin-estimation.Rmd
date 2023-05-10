@@ -8,7 +8,6 @@ editor_options:
 ```{r set up}
 source(here::here("R", "00_prep.R"))
 source(here("R", "40_prep-sia-data.R"))
-
 ```
 
 ```{r load data}
@@ -48,7 +47,7 @@ invert_df <- sia_inverts %>%
 # Calculate community niche breadth
 kin_fish <- fish_df %>% 
   as.data.frame() %>% 
-  estKIN(data = ., x = "d13Cc", y = "d15N", group = "yr_site", 
+  estKIN(data = ., x = "d13Cc", y = "d15N", group = "yr_site",
          levels = 95, smallSamp = FALSE)
 
 kin_fish_tbl <- kin_fish %>% 
@@ -151,13 +150,13 @@ invert_comm_metrics %>% print(n = Inf)
 ```{r fish community}
 # Pred fish data
 consumers_df <- sia_consumers %>% 
-  filter(sample_year %in% c(2016)) %>% 
+  filter(sample_year %in% c(2016)) %>%
   mutate_if(is.character, as.factor)
 
 # Calculate community niche breadth
 kin_comsumers <- consumers_df %>% 
   as.data.frame() %>% 
-  estKIN(data = ., x = "d13Cc", y = "d15N", group = "yr_site", 
+  estKIN(data = ., x = "d13Cc", y = "d15N", group = "yr_site",  h = "hnm",
          levels = 95, smallSamp = FALSE)
 
 kin_consumers_tbl <- kin_comsumers %>% 
@@ -185,9 +184,10 @@ consumer_comm_metrics <- kin_consumers_tbl %>%
   left_join(consumer_NR, by = "yr_site") %>% 
   select(stream_name, yr_site, PC1, PC2, KUD, CR, NR) %>% 
   separate(yr_site, into = c("sample_year","site_id"), remove = FALSE) %>% 
-  #mutate(compartment = "invert") %>% 
+  # mutate(KUD = if_else(site_id %in% c("MB03", "SW03"), KUD+5, KUD)) |>
+  # mutate(KUD = if_else(site_id %in% c("LR05"), KUD+10, KUD)) |>
   mutate_if(is.character, as.factor) %>% 
-  arrange(sample_year, site_id)
+  arrange(sample_year, site_id) 
 
 consumer_comm_metrics %>% print(n = Inf)
 ```
