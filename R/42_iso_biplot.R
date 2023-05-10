@@ -1,5 +1,5 @@
 
-# Isotope bi-plot across all sites
+# Isotope bi-plot across all sites (ms figure 4)
 
 source(here("R", "40_prep-sia-data.R"))
 
