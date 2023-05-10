@@ -5,5 +5,6 @@
 
 /*.DS_Store
 
+# keep folders offline
 /docs
 /out
