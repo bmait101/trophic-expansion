@@ -13,7 +13,8 @@ source(here("R", "40_prep-sia-data.R"))
 # Process ------------------------
 
 # Tidy up data
-baseline <- sia_baselines %>% 
+baseline <- 
+  sia_baselines %>% 
   #filter(taxon_code %in% c("biofilm", "detritus")) %>%
   mutate(sample_hitch = fct_recode(sample_hitch, 
                                    June = "H1", Jul = "H2", Aug = "H3"),
@@ -22,7 +23,7 @@ baseline <- sia_baselines %>%
          sample_year = as.factor(sample_year)) %>% 
   select(-stream_name) %>% 
   mutate(yr_site = paste(sample_year, site_id, sep = "_")) %>% 
-  filter(yr_site != "2017_LR05")  
+  filter(yr_site != "2017_LR05")  # lost most of the samples so removed 
 
 baseline <- baseline %>%
   left_join(gradient, by = "site_id")
@@ -37,14 +38,72 @@ baseline_var <-
   left_join(gradient, by = "site_id")
 baseline_var
 
+
 # Cor tests  -----------------------------------------
-tidy(cor.test(baseline$d13C, baseline$PC1))
+
+# pooled coors
+tidy(cor.test(baseline$d13C, baseline$d13C))
 tidy(cor.test(baseline_var$d13C_range, baseline_var$PC1))
 tidy(cor.test(baseline_var$d13C_CV, baseline_var$PC1))
 tidy(cor.test(baseline$d15N, baseline$PC1))
 tidy(cor.test(baseline_var$d15N_range, baseline_var$PC1))
 tidy(cor.test(baseline_var$d15N_CV, baseline_var$PC1))
 
+# differences within sites
+model <- function(df) {
+  lm(d13C ~ resource, data = df)
+}
+
+baseline |> 
+  group_by(site_id) |> 
+  nest() |> 
+  mutate(models = map(data, model)) |> 
+  mutate(glance = map(models, broom::glance)) %>% 
+  unnest(glance)
+
+# nest by group
+model <- function(df) {
+  lm(d13C ~ PC1, data = df)
+}
+
+baseline |> 
+  group_by(resource) |> 
+  nest() |> 
+  mutate(
+    models = map(data, model)) |> 
+  mutate(glance = map(models, broom::glance)) %>% 
+  unnest(glance)
+
+
+
+# d13C by PC1 and resource
+baseline |> 
+  ggplot(aes(PC1, d13C, color = resource, group = resource)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+
+m1 <- lm(d13C ~ PC1 * resource, data = baseline)
+summary(m1)
+
+m2 <- lm(d13C ~ PC1 + resource, data = baseline)
+summary(m2)
+
+AIC(m1, m2) |> arrange(AIC)
+
+
+# d15N by PC1 and resource
+baseline |> 
+  ggplot(aes(PC1, d15N, color = resource, group = resource)) +
+  geom_point() + 
+  geom_smooth(method = "lm", se = FALSE)
+
+m1 <- lm(d15N ~ PC1 * resource, data = baseline)
+summary(m1)
+
+m2 <- lm(d15N ~ PC1 + resource, data = baseline)
+summary(m2)
+
+AIC(m1, m2) |> arrange(AIC)
 
 # Pooled d13C mean  ------------------------------------
 # Assumptions:
@@ -69,6 +128,7 @@ draw(gam_rich, residuals = TRUE)
 #   select(-se.fit)
 
 p.bl.c.mean <- baseline %>%
+  # filter(resource == "biofilm") |> 
   #bind_cols(rich_pred) %>% 
   ggplot(aes(PC1, d13C)) +
   # geom_ribbon(aes(x = PC1, ymin = lwr, ymax = upr), alpha = 0.5, fill = "grey") +
