@@ -5,7 +5,6 @@ source(here("R", "40_prep-sia-data.R"))
 
 
 dat <- sia_tidy %>% 
-  filter(yr_site != "2017_LR05")  %>% 
   filter(sample_year %in% c(2016, 2017)) %>% 
   select(-length_mm, -sia_sample_id)
 dat
@@ -68,11 +67,11 @@ dat_cons_means <-
                                Grazer    = "grazer",
                                Predator  = "predator",
                                Shredder  = "shredder",
-                               Biofilm   = "biofilm",
+                               `Epilithic algae`   = "biofilm",
                                Detritus  = "detritus",
-                               Phototroph = "photo",
-                               TerrC3     = "terrC3",
-                               TerrC4     = "terrC4"
+                               `Aquatic phototroph` = "photo",
+                               `Terrestrial C3`     = "terrC3",
+                               `Terrestrial C4`     = "terrC4"
                                )) %>% 
   mutate(resource = fct_relevel(resource, 
                                 levels = c("Fish",
@@ -81,11 +80,11 @@ dat_cons_means <-
                                            "Grazer",
                                            "Shredder",
                                            "Filterer",
-                                           "Biofilm",
+                                           "Epilithic algae",
                                            "Detritus",
-                                           "Phototroph",
-                                           "TerrC3",
-                                           "TerrC4"
+                                           "Aquatic phototroph",
+                                           "Terrestrial C3",
+                                           "Terrestrial C4"
                                            ))
          ) %>% 
   mutate(site_id = fct_relevel(site_id, levels = c(
@@ -102,7 +101,7 @@ dat_cons_means %>%
   ggplot(aes(x = mean_c, y = mean_n, shape = Compartment, fill = Compartment)) +
   geom_errorbar(aes(ymin = mean_n - sd_n, ymax = mean_n + sd_n)) +
   geom_errorbarh(aes(xmin = mean_c - sd_c, xmax = mean_c + sd_c)) +
-  geom_point(size = 2) + 
+  geom_point(size = 1.5) + 
   scale_shape_manual(values = c(21,
                                 21,23,22,24,25,
                                 23,21,22,24,25
@@ -121,9 +120,9 @@ dat_cons_means %>%
 
 
 # Save it
-path <- here::here("out", "r1_sia_biplot")
+path <- here::here("out", "r1_sia_biplot_v3")
 ggsave(glue::glue("{path}.pdf"), plot = last_plot(), 
-       width = 8.5, height = 8, device = cairo_pdf)
+       width = 8.5, height = 7.5, device = cairo_pdf)
 pdftools::pdf_convert(pdf = glue::glue("{path}.pdf"),
                       filenames = glue::glue("{path}.png"),
                       format = "png", dpi = 300)
