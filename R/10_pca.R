@@ -6,12 +6,20 @@
 # * custom theme is not working
 
 
-## prep ---------------------------------
+## Prep ---------------------------------
+
+# Source global prep file
 source(here::here("R", "00_prep.R"))
-pacman::p_load(GGally, ggpubr, ggpubr, factoextra, dendextend, pvclust)
+
+# Load additional packages needed for PCA analyses
+pacman::p_load(
+  GGally, ggpubr, ggpubr, factoextra, dendextend, pvclust
+  )
 
 
-## data  -------------------------------------------------------
+## Data  -------------------------------------------------------
+
+# Load data
 site_data <- read_csv(here("data", "site_covariates.csv"), 
   col_types = cols(
     # site_id = col_factor(levels = label_sites_ids),
@@ -32,11 +40,13 @@ site_data <- read_csv(here("data", "site_covariates.csv"),
   )
 )
 
-# clean up
+# Remove scouting sites
 site_data_clean <- site_data %>% 
-  filter(stream_name != "Horse") %>%  # scouting
-  filter(site_id != "LR01") %>%  # scouting
+  filter(stream_name != "Horse") %>%  # scouting sites not in study
+  filter(site_id != "LR01") %>%  # scouting site not in study
+  # rename LR00 to LR01
   mutate(site_id = if_else(site_id == "LR00", "LR01", site_id)) |> 
+  # organize fields
   select(
     site_id, stream_name, 
     Elevation, Sthlr_order, Drainage_area, Dist_N_Platte, Gradient,
@@ -46,7 +56,7 @@ site_data_clean <- site_data %>%
 # check it
 site_data_clean
 
-# colinearity ---------------
+# Check for colinearity --------------------
 
 site_data_clean %>% 
   select(-site_id, -stream_name) %>%
@@ -57,7 +67,7 @@ site_data_clean %>%
   GGally::ggpairs(axisLabels = "show")
 
 
-# normality --------------------
+# Check for normality --------------------
 
 # elevation
 ggpubr::ggarrange(
@@ -119,7 +129,7 @@ shapiro.test(site_data_clean$Site_width)
 # sqrt transform gradient. 
 
 
-## PCA ---------------
+## PCA =========================================================
 
 # set up df
 pca_df <- site_data_clean %>% 
