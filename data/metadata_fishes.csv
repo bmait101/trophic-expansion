@@ -1,0 +1,35 @@
+family,common_name,taxon_code,genus,species,taxon,taxon_short,origin,trophic_group
+Cyprinidae,Bigmouth Shiner,BMS,Notropis,dorsalis,Notropis dorsalis,N. dorsalis,Native,HERB_INV
+Cyprinidae,Brassy Minnow,BMN,Hybognathus,hankinsoni,Hybognathus hankinsoni,H. hankinsoni,Native,HERB_INV
+Gasterosteridae,Brook Stickleback,STK,Culaea,inconstans,Culaea inconstans,C. inconstans,NonNative,HERB_INV
+Salmonidae,Brook Trout,BKT,Salvelinus,fontinalis,Salvelinus fontinalis,S. fontinalis,NonNative,PISC_INV
+Salmonidae,Brown Trout,BNT,Salmo,trutta,Salmo trutta,S. trutta,NonNative,PISC_INV
+Cyprinidae,Central Stoneroller,STR,Campostoma,anomalum,Campostoma anomalum,C. anomalum,Native,HERB
+Ictaluridae,Channel Catfish,CCF,Ictalurus,punctatus,Ictalurus punctatus,I. punctatus,Native,PISC_INV
+Cyprinidae,Common Carp,CRP,Cyprinus,carpio,Cyprinus carpio,C. carpio,NonNative,HERB_INV
+Cyprinidae,Common Shiner,CSH,Luxilus,cornutus,Luxilus cornutus,L. cornutus,Native,HERB_INV
+Cyprinidae,Creek Chub,CKC,Semolitus,atromaculatus,Semolitus atromaculatus,S. atromaculatus,Native,HERB_INV
+Cyprinidae,Creek Chub yoy,CKCyoy,Semolitus,atromaculatus,Semolitus atromaculatus,S. atromaculatus,Native,HERB_INV
+Cyprinidae,Fathead Minnow,FHM,Pimephales,promelas,Pimephales promelas,P. promelas,Native,HERB_INV
+Sciaenidae,Freshwater Drum,FWD,Aplodinotus,grunniens,Aplodinotus grunniens,A. grunniens,NonNative,PISC_INV
+Clupeidae,Gizzard Shad,GZD,Dorosoma,cepedianum,Dorosoma cepedianum,D. cepedianum,NonNative,HERB_INV
+Centrarchidae,Green Sunfish,GSF,Lepomis,cyanellus,Lepomis cyanellus,L. cyanellus,NonNative,PISC_INV
+Cyprinidae,Hornyhead Chub,HHC,Nocomis,biguttatus,Nocomis biguttatus,N. biguttatus,Native,HERB_INV
+Percidae,Iowa Darter,IOD,Etheostoma,exile,Etheostoma exile,E. exile,Native,INV
+Percidae,Johnny Darter,JDT,Etheostoma,nigrum,Etheostoma nigrum,E. nigrum,Native,INV
+Centrarchidae,Largemouth Bass,LMB,Micropterus,salmoides,Micropterus salmoides,M. salmoides,NonNative,PISC_INV
+Cyprinidae,Longnose Dace,LND,Rhinichthyes,cataractae,Rhinichthyes cataractae,R. cataractae,Native,HERB_INV
+Catostomidae,Longnose Sucker,LNS,Catostomus,catostomus,Catostomus catostomus,C. catostomus,Native,HERB_INV
+Fundulidae,Plains Killifish,PKF,Fundulus,zebrinus,Fundulus zebrinus,F. zebrinus,Native,HERB_INV
+Salmonidae,Rainbow Trout,RBT,Oncorhynchus,mykiss,Oncorhynchus mykiss,O. mykiss,NonNative,PISC_INV
+Cyprinidae,Red Shiner,RSH,Cyprinella,lutrensis,Cyprinella lutrensis,C. lutrensis,Native,HERB_INV
+Cyprinidae,Sand Shiner,SDS,Notropis,stramineus,Notropis stramineus,N. stramineus,Native,HERB_INV
+Catostomidae,Shorthead Redhorse,RDH,Moxostoma,macrolepidotum,Moxostoma macrolepidotum,M. macrolepidotum,Native,HERB_INV
+Centrarchidae,Smallmouth bass,SMB,Micropterus,dolomieu,Micropterus dolomieu,M. dolomieu,NonNative,PISC_INV
+Centrarchidae,Smallmouth bass,SMByoy,Micropterus,dolomieu,Micropterus dolomieu,M. dolomieu,NonNative,PISC_INV
+Ictaluridae,Stonecat,STC,Noturus,flavus,Noturus flavus,N. flavus,Native,HERB_INV
+Cyprinidae,Suckermouth Minnow,SMM,Phenacobius,mirabilis,Phenacobius mirabilis,P. mirabilis,Native,HERB_INV
+Percidae,Walleye,WAE,Sander,vitreus,Sander vitreus,S. vitreus,NonNative,PISC_INV
+Catostomidae,White Sucker,WHS,Catostomus,commersonni,Catostomus commersonni,C. commersonii,Native,HERB_INV
+Percidae,Yellow Perch,YEP,Perca,flavescens,Perca flavescens,P. flavescens,NonNative,PISC_INV
+Salmonidae,yoy Trout,Trout,Unknown,Unknown,Unknown Unknown,yoyTrout,NonNative,HERB_INV
