@@ -4,6 +4,9 @@ output: html_notebook
 editor_options: 
   chunk_output_type: console
 ---
+
+This script is for exploratory data analyses and visualizations. 
+
 ## Set up
 
 ```{r load-prepped-data}
@@ -103,28 +106,28 @@ sia_tidy %>%
 ### LR00
 ```{r LR00}
 # community ----
+
 sia_tidy %>% 
-  filter(sample_year %in% c(2016,2017)) %>% 
-  filter(site_id %in% c("LR00")) %>%
-  ggplot(aes(d13Cc, d15N, color = resource, shape = as.factor(sample_year))) +
+  filter(sample_year %in% c(2016)) %>%
+  filter(site_id %in% c("LR01")) %>%
+  filter(!compartment %in% c("baseline","fish")) %>%
+  ggplot(aes(d13Cc, d15N, color = taxon_code, shape = compartment)) +
   geom_point(size = 3) +
-  scale_color_manual(values = c(
-    "olivedrab2","tan4","grey","black","green","brown","brown")) + 
-  #ggrepel::geom_text_repel(aes(label = taxon_code)) +
+  # scale_color_manual(values = c(
+  #   "olivedrab2","tan4","grey","black","green","brown","brown")) + 
+  # ggrepel::geom_text_repel(aes(label = taxon_code)) +
   # ggrepel::geom_text_repel(data = subset(sia_tidy,
   #                                        site_id == "LR00" &
   #                                          compartment == "fish" &
   #                                          #taxon_code == "FWD" &
   #                                          sample_year %in% c("2016","2017")),
   #                          aes(label = sia_sample_id)) +
-  theme_classic() +
-  facet_wrap(vars(factor(sample_year)), ncol = 2) +
-  theme_bw()
+  theme_classic() 
 #
 # fish ----
 sia_tidy %>% 
-  filter(sample_year %in% c(2016,2017)) %>% 
-  filter(site_id %in% c("LR00")) %>%
+  filter(sample_year %in% c(2016)) %>% 
+  filter(site_id %in% c("LR01")) %>%
   filter(compartment == "fish") %>% 
   ggplot(aes(d13C, d15N, color = taxon_code)) +
   geom_point(size = 3) +
@@ -133,10 +136,8 @@ sia_tidy %>%
   #                                          taxon_code == "WHS" &
   #                                          sample_year %in% c("2016","2017")),
   #                          aes(label = taxon_code)) +
-  ggrepel::geom_text_repel(aes(label = sia_sample_id)) +  
-  theme_classic() +
-  facet_wrap(vars(factor(sample_year))) +
-  theme_bw()
+  # ggrepel::geom_text_repel(aes(label = sia_sample_id)) +  
+  theme_classic() 
 #
 # index-------
 sia_tidy %>% 
@@ -225,11 +226,16 @@ sia_tidy %>%
 sia_tidy %>% 
   filter(sample_year %in% c(2016,2017)) %>% 
   filter(site_id %in% c("LR03")) %>%
-  ggplot(aes(d13Ccc, d15N, color = resource)) +
+    filter(compartment=="baseline") %>%
+  ggplot(aes(d13Cc, d15N, color = resource, shape = as.factor(sample_year))) +
   geom_point(size = 3) +
   scale_color_manual(values = c(
     "olivedrab2","tan4","grey","black","green","brown","brown")) + 
   facet_wrap(vars(factor(sample_year)), nrow = 2) +
+  ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "LR03" &
+                                           compartment == "baseline" &
+                                           sample_year %in% c("2016","2017")),
+                           aes(label = sia_sample_id), size = 3) +
   theme_bw()
 #
 # fish ----
@@ -553,6 +559,7 @@ sia_tidy %>%
 sia_tidy %>% 
   filter(sample_year %in% c(2016,2017)) %>% 
   filter(site_id %in% c("MB01")) %>%
+    filter(compartment == "baseline") |> 
   ggplot(aes(d13C, d15N, color = resource, shape = as.factor(sample_year))) +
   geom_point(size = 3) +
   scale_color_manual(values = c(
@@ -569,10 +576,10 @@ sia_tidy %>%
   #                                          #taxon_code == "Leptohyphidae" &
   #                                          sample_year %in% c("2016","2017")),
   #                          aes(label = taxon_code), size = 3) +
-  # ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "MB01" &
-  #                                          compartment == "baseline" &
-  #                                          sample_year %in% c("2016")),
-  #                          aes(label = sia_sample_id), size = 3) +
+  ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "MB01" &
+                                           compartment == "baseline" &
+                                           sample_year %in% c("2016")),
+                           aes(label = sia_sample_id), size = 3) +
   theme_classic() +
   facet_wrap(vars(factor(sample_year)), nrow = 2) +
   theme_bw()
@@ -814,6 +821,7 @@ sia_tidy %>%
 sia_tidy %>% 
   filter(sample_year %in% c(2016,2017)) %>% 
   filter(site_id %in% c("SW01")) %>%
+  filter(compartment == "baseline") |> 
   ggplot(aes(d13C, d15N, color = resource, shape = as.factor(sample_year))) +
   geom_point(size = 3) +
   scale_color_manual(values = c(
@@ -830,10 +838,10 @@ sia_tidy %>%
   #                                          #taxon_code == "Simulidae" &
   #                                          sample_year %in% c(2016)),
   #                          aes(label = taxon_code), size = 3) +
-  # ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "SW01" &
-  #                                          compartment == "baseline" &
-  #                                          sample_year %in% c(2016, 2017)),
-  #                          aes(label = sia_sample_id), size = 3) +
+  ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "SW01" &
+                                           compartment == "baseline" &
+                                           sample_year %in% c(2016, 2017)),
+                           aes(label = sia_sample_id), size = 3) +
   theme_classic() +
   facet_wrap(vars(factor(sample_year))) +
   theme_bw()
@@ -997,6 +1005,7 @@ sia_tidy %>%
 sia_tidy %>% 
   filter(sample_year %in% c(2016,2017)) %>% 
   filter(site_id %in% c("SW04")) %>%
+  filter(compartment == "baseline") |> 
   ggplot(aes(d13C, d15N, color = resource, shape = as.factor(sample_year))) +
   geom_point(size = 3) +
   scale_color_manual(values = c(
@@ -1013,10 +1022,10 @@ sia_tidy %>%
   #                                          #taxon_code == "Leptohyphidae" &
   #                                          sample_year %in% c("2016")),
   #                          aes(label = sia_sample_id), size = 3) +
-  # ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "SW04" &
-  #                                          compartment == "baseline" &
-  #                                          sample_year %in% c("2016","2017")),
-  #                          aes(label = sia_sample_id), size = 3) +
+  ggrepel::geom_text_repel(data = subset(sia_tidy, site_id == "SW04" &
+                                           compartment == "baseline" &
+                                           sample_year %in% c("2016","2017")),
+                           aes(label = sia_sample_id), size = 3) +
   facet_wrap(vars(factor(sample_year))) +
   theme_bw()
 #
