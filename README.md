@@ -6,4 +6,4 @@
 
 Repository for data files and R scripts accompanying:
 
-[Maitland, BM](https://bryan-m-maitland.netlify.app/) & [Rahel, FJ](http://www.uwyo.edu/frahel/). Aquatic food web expansion and trophic redundancy along the Rocky Mountain—Great Plains ecotone. **Currently under consideration at *Ecology*.**
+[Maitland, BM](https://bryan-m-maitland.netlify.app/) & [Rahel, FJ](http://www.uwyo.edu/frahel/). Aquatic food web expansion and trophic redundancy along the Rocky Mountain—Great Plains ecotone. **Accepted at *Ecology* on 10 May 2023.**
